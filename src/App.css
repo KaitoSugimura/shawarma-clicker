@@ -1,0 +1,92 @@
+/* Full-screen game styles */
+#root {
+  max-width: none !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Ensure all containers take full space */
+.chakra-portal,
+.chakra-portal-manager {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+
+/* Animated Background Effects */
+@keyframes rainDrop {
+  0% {
+    transform: translateY(-100px) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.7;
+  }
+  90% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes particleFloat {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px) scale(1);
+    opacity: 0.4;
+  }
+  25% {
+    transform: translateY(-20px) translateX(10px) scale(1.1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-10px) translateX(-15px) scale(0.9);
+    opacity: 0.6;
+  }
+  75% {
+    transform: translateY(-25px) translateX(5px) scale(1.05);
+    opacity: 0.7;
+  }
+}
+
+@keyframes spiceDust {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  80% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+/* Enhanced glow effect for main shawarma */
+@keyframes shawarmaGlow {
+  0%,
+  100% {
+    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8))
+      drop-shadow(0 0 20px rgba(251, 211, 141, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8))
+      drop-shadow(0 0 40px rgba(251, 211, 141, 0.6));
+  }
+}
