@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text, Button, VStack } from "@chakra-ui/react";
 import { SPECIAL_EVENTS } from "../constants/gameConstants";
-import type { SpecialEvent } from "../types/game";
+import type { SpecialEvent, GameState } from "../types/game";
 
 interface SpecialEventsProps {
   onEventTrigger: (event: SpecialEvent) => void;
-  currentShawarmas: number;
+  gameState: GameState;
+  activeEvents: SpecialEvent[];
 }
 
 const SpecialEvents: React.FC<SpecialEventsProps> = ({
   onEventTrigger,
-  currentShawarmas,
+  gameState,
+  activeEvents,
 }) => {
-  const [activeEvents, setActiveEvents] = useState<SpecialEvent[]>([]);
   const [goldenShawarma, setGoldenShawarma] = useState<{
     visible: boolean;
     x: number;
@@ -64,17 +65,19 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
     const triggerRandomEvent = () => {
       const events: Omit<SpecialEvent, "id" | "startTime">[] = [
         {
+          name: "Click Frenzy",
           type: "frenzy",
           duration: SPECIAL_EVENTS.CLICK_FRENZY.DURATION,
           multiplier: SPECIAL_EVENTS.CLICK_FRENZY.MULTIPLIER,
           message: "Click Frenzy! 7x clicking power for 77 seconds!",
         },
         {
+          name: "Lucky Bonus",
           type: "lucky_bonus",
           duration: SPECIAL_EVENTS.LUCKY_BONUS.DURATION,
           multiplier: SPECIAL_EVENTS.LUCKY_BONUS.MULTIPLIER,
           message: `Lucky! Gained ${Math.floor(
-            currentShawarmas * SPECIAL_EVENTS.LUCKY_BONUS.BONUS_PERCENTAGE
+            gameState.shawarmas * SPECIAL_EVENTS.LUCKY_BONUS.BONUS_PERCENTAGE
           )} shawarmas!`,
         },
       ];
@@ -86,7 +89,6 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
         startTime: Date.now(),
       };
 
-      setActiveEvents((prev) => [...prev, fullEvent]);
       onEventTrigger(fullEvent);
     };
 
@@ -97,13 +99,11 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [currentShawarmas, onEventTrigger]);
+  }, [gameState.shawarmas, onEventTrigger]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveEvents((prev) =>
-        prev.filter((event) => Date.now() - event.startTime < event.duration)
-      );
+      // Cleanup is now handled by the parent component
     }, 1000);
 
     return () => clearInterval(interval);
@@ -112,9 +112,12 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
   const handleGoldenShawarmaClick = () => {
     if (!goldenShawarma?.visible) return;
 
-    const bonus = Math.floor(currentShawarmas * (0.1 + Math.random() * 0.15));
+    const bonus = Math.floor(
+      gameState.shawarmas * (0.1 + Math.random() * 0.15)
+    );
     const goldenEvent: SpecialEvent = {
       id: `golden-${Date.now()}`,
+      name: "Golden Shawarma",
       type: "lucky_bonus",
       duration: 1000,
       multiplier: 1,

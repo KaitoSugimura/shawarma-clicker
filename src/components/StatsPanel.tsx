@@ -1,23 +1,26 @@
 import React from "react";
 import { Box, VStack, Text, Grid } from "@chakra-ui/react";
-import type { GameStats } from "../types/game";
+import type { GameStats, GameState, Upgrade } from "../types/game";
 import { formatNumber, formatTime } from "../utils/gameUtils";
 
 interface StatsProps {
   stats: GameStats;
-  shawarmasPerSecond: number;
-  totalEarned: number;
-  achievements: string[];
+  gameState: GameState;
+  upgrades: Upgrade[];
+  showAchievements: boolean;
+  onToggleAchievements: () => void;
 }
 
 const StatsPanel: React.FC<StatsProps> = ({
   stats,
-  shawarmasPerSecond,
-  totalEarned,
-  achievements,
+  gameState,
+  upgrades,
+  showAchievements,
+  onToggleAchievements,
 }) => {
   const playTime = Date.now() - stats.gameStartTime;
-  const averageSPS = playTime > 0 ? totalEarned / (playTime / 1000) : 0;
+  const averageSPS =
+    playTime > 0 ? gameState.totalShawarmasEarned / (playTime / 1000) : 0;
 
   return (
     <Box>
@@ -58,7 +61,7 @@ const StatsPanel: React.FC<StatsProps> = ({
                 Current SPS
               </Text>
               <Text fontSize="lg" fontWeight="semibold" color="blue.300">
-                {formatNumber(shawarmasPerSecond)}
+                {formatNumber(gameState.shawarmasPerSecond)}
               </Text>
             </Box>
           </VStack>
@@ -87,7 +90,7 @@ const StatsPanel: React.FC<StatsProps> = ({
                 Achievements
               </Text>
               <Text fontSize="lg" fontWeight="semibold" color="blue.300">
-                {achievements.length}/7
+                {gameState.achievements.length}/7
               </Text>
             </Box>
           </VStack>
@@ -103,7 +106,7 @@ const StatsPanel: React.FC<StatsProps> = ({
         >
           <Text fontSize="sm" color="blue.400" textAlign="center">
             🏆 Achievement Progress:{" "}
-            {Math.round((achievements.length / 7) * 100)}%
+            {Math.round((gameState.achievements.length / 7) * 100)}%
           </Text>
         </Box>
       </Box>

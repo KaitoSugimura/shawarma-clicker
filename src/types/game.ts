@@ -14,6 +14,7 @@ export interface Upgrade {
   cost: number;
   owned: number;
   baseProduction: number;
+  shawarmasPerSecond: number; // Add this property
   costMultiplier: number;
   maxOwned?: number;
   icon: string;
@@ -26,6 +27,8 @@ export interface ClickUpgrade {
   cost: number;
   owned: boolean;
   multiplier: number;
+  shawarmasPerClick: number; // Add this property
+  icon: string; // Add this property
 }
 
 export interface Achievement {
@@ -45,6 +48,7 @@ export interface GameStats {
 
 export interface SpecialEvent {
   id: string;
+  name: string;
   type: "golden_shawarma" | "frenzy" | "lucky_bonus";
   duration: number;
   multiplier: number;
@@ -54,8 +58,9 @@ export interface SpecialEvent {
 
 export interface Notification {
   id: string;
-  title: string;
+  title?: string;
   message: string;
-  type: "achievement" | "upgrade" | "milestone";
-  timestamp: number;
+  type: "achievement" | "upgrade" | "milestone" | "special";
+  timestamp?: number;
+  duration?: number;
 }

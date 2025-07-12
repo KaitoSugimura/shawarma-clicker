@@ -21,9 +21,24 @@ export const SPECIAL_EVENTS = {
 
 export const ACHIEVEMENT_TOTAL = 27;
 
-export const MILESTONES = [
-  10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000,
-] as const;
+export const MILESTONES = {
+  clicks: [
+    { threshold: 10, message: "You're getting the hang of it! 10 clicks!" },
+    { threshold: 100, message: "Click master! 100 clicks achieved!" },
+    { threshold: 1000, message: "Thousand clicks! Your fingers are strong!" },
+    {
+      threshold: 10000,
+      message: "Ten thousand clicks! Incredible dedication!",
+    },
+  ],
+  shawarmas: [
+    { threshold: 10, message: "First batch complete! 10 shawarmas made!" },
+    { threshold: 100, message: "Century of shawarmas! 100 made!" },
+    { threshold: 1000, message: "Thousand shawarmas! You're a pro!" },
+    { threshold: 10000, message: "Ten thousand shawarmas! Master chef!" },
+    { threshold: 100000, message: "One hundred thousand shawarmas! Legend!" },
+  ],
+} as const;
 
 export const NOTIFICATION_AUTO_CLOSE_DELAY = 3000;
 

@@ -15,7 +15,8 @@ export const formatShawarmaCount = (num: number): string => {
   return num.toFixed(1);
 };
 
-export const formatPerSecond = (num: number): string => {
+export const formatPerSecond = (num: number | null | undefined): string => {
+  if (num === null || num === undefined || isNaN(num)) return "0.0";
   if (num >= 1e12) return (num / 1e12).toFixed(2) + "T";
   if (num >= 1e9) return (num / 1e9).toFixed(2) + "B";
   if (num >= 1e6) return (num / 1e6).toFixed(2) + "M";

@@ -6,6 +6,7 @@ import type {
   Upgrade,
   ClickUpgrade,
   Notification,
+  GameStats,
 } from "../types/game";
 
 interface GameControlsProps {
@@ -14,7 +15,8 @@ interface GameControlsProps {
   onLoad: (
     gameState: GameState,
     upgrades: Upgrade[],
-    clickUpgrades: ClickUpgrade[]
+    clickUpgrades: ClickUpgrade[],
+    gameStats?: GameStats
   ) => void;
   addNotification: (notification: Notification) => void;
 }
@@ -37,7 +39,12 @@ const GameControls: React.FC<GameControlsProps> = ({
         const saveData = JSON.parse(e.target?.result as string);
 
         if (saveData.gameState && saveData.upgrades && saveData.clickUpgrades) {
-          onLoad(saveData.gameState, saveData.upgrades, saveData.clickUpgrades);
+          onLoad(
+            saveData.gameState,
+            saveData.upgrades,
+            saveData.clickUpgrades,
+            saveData.gameStats
+          );
           addNotification({
             id: `load-${Date.now()}`,
             title: "Game Loaded!",
