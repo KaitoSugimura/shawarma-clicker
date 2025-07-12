@@ -13,11 +13,16 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Reset everything and ensure full coverage */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
@@ -39,7 +44,6 @@ body {
   left: 0 !important;
 }
 
-/* Override any Chakra UI container styles */
 .chakra-container,
 .css-1lekzkb {
   max-width: none !important;
@@ -49,7 +53,6 @@ body {
   padding: 0 !important;
 }
 
-/* Remove focus outlines globally */
 *:focus {
   outline: none !important;
   box-shadow: none !important;

@@ -1,14 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text, Button, VStack } from "@chakra-ui/react";
-
-interface SpecialEvent {
-  id: string;
-  type: "golden_shawarma" | "frenzy" | "lucky_bonus";
-  duration: number;
-  multiplier: number;
-  message: string;
-  startTime: number;
-}
+import { SPECIAL_EVENTS } from "../constants/gameConstants";
+import type { SpecialEvent } from "../types/game";
 
 interface SpecialEventsProps {
   onEventTrigger: (event: SpecialEvent) => void;
@@ -27,23 +20,20 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
     timeLeft: number;
   } | null>(null);
 
-  // Spawn golden shawarma randomly
   useEffect(() => {
     const spawnGoldenShawarma = () => {
       if (goldenShawarma?.visible) return;
 
       setGoldenShawarma({
         visible: true,
-        x: Math.random() * 80 + 10, // 10% to 90% of screen width
-        y: Math.random() * 60 + 20, // 20% to 80% of screen height
-        timeLeft: 13000, // 13 seconds
+        x: Math.random() * 80 + 10,
+        y: Math.random() * 60 + 20,
+        timeLeft: SPECIAL_EVENTS.GOLDEN_SHAWARMA.DURATION,
       });
     };
 
-    // Random chance every 30-120 seconds
     const interval = setInterval(() => {
       if (Math.random() < 0.1) {
-        // 10% chance every check
         spawnGoldenShawarma();
       }
     }, 5000);
@@ -51,7 +41,6 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
     return () => clearInterval(interval);
   }, [goldenShawarma]);
 
-  // Golden shawarma countdown
   useEffect(() => {
     if (!goldenShawarma?.visible) return;
 
@@ -71,22 +60,21 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
     return () => clearInterval(interval);
   }, [goldenShawarma?.visible]);
 
-  // Random events
   useEffect(() => {
     const triggerRandomEvent = () => {
       const events: Omit<SpecialEvent, "id" | "startTime">[] = [
         {
           type: "frenzy",
-          duration: 77000, // 77 seconds (Cookie Clicker reference)
-          multiplier: 7,
+          duration: SPECIAL_EVENTS.CLICK_FRENZY.DURATION,
+          multiplier: SPECIAL_EVENTS.CLICK_FRENZY.MULTIPLIER,
           message: "Click Frenzy! 7x clicking power for 77 seconds!",
         },
         {
           type: "lucky_bonus",
-          duration: 1000,
-          multiplier: 1,
+          duration: SPECIAL_EVENTS.LUCKY_BONUS.DURATION,
+          multiplier: SPECIAL_EVENTS.LUCKY_BONUS.MULTIPLIER,
           message: `Lucky! Gained ${Math.floor(
-            currentShawarmas * 0.15
+            currentShawarmas * SPECIAL_EVENTS.LUCKY_BONUS.BONUS_PERCENTAGE
           )} shawarmas!`,
         },
       ];
@@ -102,10 +90,8 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
       onEventTrigger(fullEvent);
     };
 
-    // Random events every 2-5 minutes
     const interval = setInterval(() => {
       if (Math.random() < 0.05) {
-        // 5% chance every check
         triggerRandomEvent();
       }
     }, 10000);
@@ -113,7 +99,6 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
     return () => clearInterval(interval);
   }, [currentShawarmas, onEventTrigger]);
 
-  // Clean up expired events
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveEvents((prev) =>
@@ -127,7 +112,6 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
   const handleGoldenShawarmaClick = () => {
     if (!goldenShawarma?.visible) return;
 
-    // Golden shawarma gives 10-25% of current shawarmas + base click value
     const bonus = Math.floor(currentShawarmas * (0.1 + Math.random() * 0.15));
     const goldenEvent: SpecialEvent = {
       id: `golden-${Date.now()}`,
@@ -153,34 +137,71 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
 
   return (
     <>
-      {/* Active Events Display */}
       {activeEvents.length > 0 && (
-        <Box position="fixed" top="100px" left="20px" zIndex={999} w="250px">
-          <VStack gap={2} align="stretch">
+        <Box position="fixed" top="100px" left="20px" zIndex={999} w="280px">
+          <VStack gap={3} align="stretch">
             {activeEvents.map((event) => (
               <Box
                 key={event.id}
-                p={3}
-                bg="purple.100"
+                p={4}
+                bg={
+                  event.type === "frenzy"
+                    ? "linear-gradient(135deg, rgba(251, 211, 141, 0.15), rgba(237, 137, 54, 0.15))"
+                    : "linear-gradient(135deg, rgba(196, 181, 253, 0.15), rgba(124, 58, 237, 0.15))"
+                }
                 borderWidth="2px"
-                borderColor="purple.300"
-                borderRadius="lg"
-                boxShadow="lg"
+                borderColor={
+                  event.type === "frenzy" ? "orange.400" : "purple.400"
+                }
+                borderRadius="xl"
+                boxShadow={
+                  event.type === "frenzy"
+                    ? "0 8px 32px rgba(251, 211, 141, 0.3)"
+                    : "0 8px 32px rgba(196, 181, 253, 0.3)"
+                }
+                backdropFilter="blur(10px)"
+                animation={
+                  event.type === "frenzy"
+                    ? "frenzyPulse 1.5s ease-in-out infinite"
+                    : "luckyGlow 2s ease-in-out infinite"
+                }
               >
-                <VStack gap={1}>
-                  <Text fontSize="sm" fontWeight="bold" color="purple.700">
+                <VStack gap={2}>
+                  <Text
+                    fontSize="md"
+                    fontWeight="bold"
+                    color={
+                      event.type === "frenzy" ? "orange.300" : "purple.300"
+                    }
+                    textAlign="center"
+                    textShadow="0 2px 4px rgba(0, 0, 0, 0.8)"
+                  >
                     {event.type === "frenzy"
                       ? "🔥 CLICK FRENZY!"
                       : "✨ LUCKY BONUS!"}
                   </Text>
-                  <Text fontSize="xs" color="purple.600" textAlign="center">
+                  <Text
+                    fontSize="sm"
+                    color="gray.300"
+                    textAlign="center"
+                    fontWeight="medium"
+                    bg="rgba(0, 0, 0, 0.4)"
+                    px={2}
+                    py={1}
+                    borderRadius="md"
+                  >
                     {formatTime(
                       event.duration - (Date.now() - event.startTime)
                     )}{" "}
                     remaining
                   </Text>
                   {event.type === "frenzy" && (
-                    <Text fontSize="xs" color="purple.500">
+                    <Text
+                      fontSize="sm"
+                      color="orange.200"
+                      fontWeight="semibold"
+                      textAlign="center"
+                    >
                       {event.multiplier}x clicking power
                     </Text>
                   )}
@@ -191,7 +212,6 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
         </Box>
       )}
 
-      {/* Golden Shawarma */}
       {goldenShawarma?.visible && (
         <Button
           position="fixed"
@@ -199,31 +219,76 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
           top={`${goldenShawarma.y}%`}
           zIndex={998}
           variant="ghost"
-          size="lg"
+          size="xl"
           onClick={handleGoldenShawarmaClick}
           animation="goldenPulse 1s ease-in-out infinite"
           transform="translate(-50%, -50%)"
+          minW="120px"
+          minH="120px"
+          borderRadius="full"
+          _hover={{
+            transform: "translate(-50%, -50%) scale(1.1)",
+          }}
+          _focus={{ boxShadow: "none" }}
+          transition="all 0.2s"
+          bg="rgba(255, 215, 0, 0.1)"
+          border="2px solid"
+          borderColor="yellow.400"
         >
           <VStack gap={1}>
-            <Text fontSize="3xl">🥇</Text>
-            <Text fontSize="xs" color="yellow.600" fontWeight="bold">
+            <Text fontSize="6xl" textShadow="0 0 15px rgba(255, 215, 0, 1)">
+              ⭐
+            </Text>
+            <Text
+              fontSize="xs"
+              color="yellow.200"
+              fontWeight="bold"
+              textShadow="0 0 5px rgba(0, 0, 0, 0.8)"
+              bg="rgba(0, 0, 0, 0.7)"
+              px={2}
+              py={1}
+              borderRadius="md"
+            >
               {formatTime(goldenShawarma.timeLeft)}
             </Text>
           </VStack>
         </Button>
       )}
 
-      {/* CSS Animations */}
       <style>
         {`
           @keyframes goldenPulse {
             0%, 100% {
               transform: translate(-50%, -50%) scale(1);
               opacity: 1;
+              filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.8));
             }
             50% {
-              transform: translate(-50%, -50%) scale(1.1);
-              opacity: 0.8;
+              transform: translate(-50%, -50%) scale(1.08);
+              opacity: 0.95;
+              filter: drop-shadow(0 0 25px rgba(255, 215, 0, 1));
+            }
+          }
+
+          @keyframes frenzyPulse {
+            0%, 100% {
+              transform: scale(1);
+              filter: drop-shadow(0 0 8px rgba(251, 211, 141, 0.4));
+            }
+            50% {
+              transform: scale(1.02);
+              filter: drop-shadow(0 0 16px rgba(251, 211, 141, 0.6));
+            }
+          }
+
+          @keyframes luckyGlow {
+            0%, 100% {
+              transform: scale(1);
+              filter: drop-shadow(0 0 8px rgba(196, 181, 253, 0.4));
+            }
+            50% {
+              transform: scale(1.01);
+              filter: drop-shadow(0 0 12px rgba(196, 181, 253, 0.6));
             }
           }
         `}
@@ -233,4 +298,3 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
 };
 
 export default SpecialEvents;
-export type { SpecialEvent };

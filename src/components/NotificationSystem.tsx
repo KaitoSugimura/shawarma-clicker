@@ -1,13 +1,6 @@
 import React from "react";
 import { Box, Text, HStack, VStack } from "@chakra-ui/react";
-
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: "achievement" | "upgrade" | "milestone";
-  timestamp: number;
-}
+import type { Notification } from "../types/game";
 
 interface NotificationSystemProps {
   notifications: Notification[];
@@ -32,7 +25,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
         <NotificationCard
           key={notification.id}
           notification={notification}
-          onRemove={() => onRemoveNotification(notification.id)}
+          onRemoveNotification={onRemoveNotification}
         />
       ))}
     </VStack>
@@ -41,13 +34,17 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
 
 interface NotificationCardProps {
   notification: Notification;
-  onRemove: () => void;
+  onRemoveNotification: (id: string) => void;
 }
 
 const NotificationCard: React.FC<NotificationCardProps> = ({
   notification,
-  onRemove,
+  onRemoveNotification,
 }) => {
+  const onRemove = React.useCallback(() => {
+    onRemoveNotification(notification.id);
+  }, [onRemoveNotification, notification.id]);
+
   // Auto-remove after 3 seconds
   React.useEffect(() => {
     const timer = setTimeout(onRemove, 3000);
@@ -158,4 +155,3 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 };
 
 export default NotificationSystem;
-export type { Notification };

@@ -1,179 +1,48 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Button,
-  Grid,
-  Badge,
-} from "@chakra-ui/react";
-import { FaRedo, FaSave, FaDownload } from "react-icons/fa";
-import { useLocalStorage } from "../hooks/useLocalStorage";
+import { Box, VStack, HStack, Text, Grid, Badge } from "@chakra-ui/react";
 
 import NotificationSystem from "./NotificationSystem";
 import SpecialEvents from "./SpecialEvents";
 import StatsPanel from "./StatsPanel";
 import AnimatedBackground from "./AnimatedBackground";
-import type { Notification } from "./NotificationSystem";
-import type { SpecialEvent } from "./SpecialEvents";
-import type { GameStats } from "./StatsPanel";
-
-// Game state interface
-interface GameState {
-  shawarmas: number;
-  shawarmasPerSecond: number;
-  shawarmasPerClick: number;
-  totalShawarmasEarned: number;
-  prestige: number;
-  achievements: string[];
-}
-
-// Upgrade interface
-interface Upgrade {
-  id: string;
-  name: string;
-  description: string;
-  cost: number;
-  owned: number;
-  baseProduction: number;
-  costMultiplier: number;
-  maxOwned?: number;
-  icon: string;
-}
-
-// Achievement interface
-interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  requirement: (state: GameState, upgrades: Upgrade[]) => boolean;
-  reward?: string;
-}
+import GameControls from "./GameControls";
+import type {
+  GameState,
+  Upgrade,
+  Notification,
+  SpecialEvent,
+  GameStats,
+} from "../types/game";
+import {
+  initialGameState,
+  initialUpgrades,
+  initialClickUpgrades,
+  achievements,
+} from "../data/gameData";
+import {
+  formatNumber,
+  formatShawarmaCount,
+  formatPerSecond,
+  loadFromStorage,
+} from "../utils/gameUtils";
+import {
+  MILESTONES,
+  ANIMATION_CLEANUP_DELAY,
+  MAX_CLICK_ANIMATIONS,
+  MAX_PRODUCTION_ANIMATIONS,
+} from "../constants/gameConstants";
 
 const ShawarmaClicker: React.FC = () => {
-  // Safe localStorage - load on init, save manually
-  const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
-    try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : defaultValue;
-    } catch {
-      return defaultValue;
-    }
-  };
-
-  const saveToStorage = <T,>(key: string, value: T) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      console.warn(`Failed to save ${key}:`, error);
-    }
-  };
-
-  // Load initial state from localStorage once
   const [gameState, setGameState] = useState<GameState>(() =>
-    loadFromStorage("shawarma-game-state", {
-      shawarmas: 0,
-      shawarmasPerSecond: 0,
-      shawarmasPerClick: 1,
-      totalShawarmasEarned: 0,
-      prestige: 0,
-      achievements: [],
-    })
+    loadFromStorage("shawarma-game-state", initialGameState)
   );
 
   const [upgrades, setUpgrades] = useState<Upgrade[]>(() =>
-    loadFromStorage("shawarma-upgrades", [
-      {
-        id: "cursor",
-        name: "Auto Flipper",
-        description: "Automatically flips shawarmas for you",
-        cost: 15,
-        owned: 0,
-        baseProduction: 0.1,
-        costMultiplier: 1.15,
-        icon: "👆",
-      },
-      {
-        id: "kitchen",
-        name: "Kitchen Helper",
-        description: "A helper to prepare shawarmas faster",
-        cost: 100,
-        owned: 0,
-        baseProduction: 1,
-        costMultiplier: 1.15,
-        icon: "👨‍🍳",
-      },
-      {
-        id: "grill",
-        name: "Professional Grill",
-        description: "High-quality grill for perfect shawarmas",
-        cost: 1100,
-        owned: 0,
-        baseProduction: 8,
-        costMultiplier: 1.15,
-        icon: "🔥",
-      },
-      {
-        id: "restaurant",
-        name: "Shawarma Restaurant",
-        description: "Your own restaurant serving customers",
-        cost: 12000,
-        owned: 0,
-        baseProduction: 47,
-        costMultiplier: 1.15,
-        icon: "🏪",
-      },
-      {
-        id: "factory",
-        name: "Shawarma Factory",
-        description: "Mass production of delicious shawarmas",
-        cost: 130000,
-        owned: 0,
-        baseProduction: 260,
-        costMultiplier: 1.15,
-        icon: "🏭",
-      },
-      {
-        id: "franchise",
-        name: "Shawarma Franchise",
-        description: "Expand your business across the world",
-        cost: 1400000,
-        owned: 0,
-        baseProduction: 1400,
-        costMultiplier: 1.15,
-        icon: "🌍",
-      },
-    ])
+    loadFromStorage("shawarma-upgrades", initialUpgrades)
   );
 
   const [clickUpgrades, setClickUpgrades] = useState(() =>
-    loadFromStorage("shawarma-click-upgrades", [
-      {
-        id: "better_hands",
-        name: "Better Hands",
-        description: "Double your clicking power",
-        cost: 100,
-        owned: false,
-        multiplier: 2,
-      },
-      {
-        id: "golden_touch",
-        name: "Golden Touch",
-        description: "Triple your clicking power",
-        cost: 1000,
-        owned: false,
-        multiplier: 3,
-      },
-      {
-        id: "master_chef",
-        name: "Master Chef",
-        description: "5x clicking power",
-        cost: 10000,
-        owned: false,
-        multiplier: 5,
-      },
-    ])
+    loadFromStorage("shawarma-click-upgrades", initialClickUpgrades)
   );
 
   const [gameStats, setGameStats] = useState<GameStats>({
@@ -183,51 +52,6 @@ const ShawarmaClicker: React.FC = () => {
     totalUpgradesPurchased: 0,
   });
 
-  const [achievements] = useState<Achievement[]>([
-    {
-      id: "first_shawarma",
-      name: "First Bite",
-      description: "Click your first shawarma",
-      requirement: (state) => state.totalShawarmasEarned >= 1,
-    },
-    {
-      id: "hundred_shawarmas",
-      name: "Shawarma Lover",
-      description: "Earn 100 shawarmas",
-      requirement: (state) => state.totalShawarmasEarned >= 100,
-    },
-    {
-      id: "thousand_shawarmas",
-      name: "Shawarma Addict",
-      description: "Earn 1,000 shawarmas",
-      requirement: (state) => state.totalShawarmasEarned >= 1000,
-    },
-    {
-      id: "ten_thousand_shawarmas",
-      name: "Shawarma Master",
-      description: "Earn 10,000 shawarmas",
-      requirement: (state) => state.totalShawarmasEarned >= 10000,
-    },
-    {
-      id: "first_upgrade",
-      name: "Getting Automated",
-      description: "Buy your first upgrade",
-      requirement: (_state, upgrades) => upgrades.some((u) => u.owned > 0),
-    },
-    {
-      id: "fast_production",
-      name: "Speed Demon",
-      description: "Produce 10 shawarmas per second",
-      requirement: (state) => state.shawarmasPerSecond >= 10,
-    },
-    {
-      id: "production_master",
-      name: "Production Master",
-      description: "Produce 100 shawarmas per second",
-      requirement: (state) => state.shawarmasPerSecond >= 100,
-    },
-  ]);
-
   const [clickAnimations, setClickAnimations] = useState<
     Array<{ id: number; x: number; y: number }>
   >([]);
@@ -236,6 +60,7 @@ const ShawarmaClicker: React.FC = () => {
   >([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [clickMultiplier, setClickMultiplier] = useState(1);
+  const [showAchievements, setShowAchievements] = useState(true);
 
   // Auto-save game progress - Commented out to prevent conflicts
   // useAutoSave('shawarma-game-state', gameState);
@@ -283,12 +108,31 @@ const ShawarmaClicker: React.FC = () => {
   // Auto-clicker effect
   useEffect(() => {
     const interval = setInterval(() => {
-      setGameState((prev) => ({
-        ...prev,
-        shawarmas: prev.shawarmas + prev.shawarmasPerSecond,
-        totalShawarmasEarned:
-          prev.totalShawarmasEarned + prev.shawarmasPerSecond,
-      }));
+      setGameState((prev) => {
+        if (prev.shawarmasPerSecond > 0) {
+          // Add production animation
+          const animationId = Date.now();
+          const randomX = 150 + Math.random() * 100; // Random position around the shawarma
+          const randomY = 150 + Math.random() * 100;
+
+          setProductionAnimations((prevAnims) => [
+            ...prevAnims,
+            {
+              id: animationId,
+              x: randomX,
+              y: randomY,
+              amount: prev.shawarmasPerSecond,
+            },
+          ]);
+        }
+
+        return {
+          ...prev,
+          shawarmas: prev.shawarmas + prev.shawarmasPerSecond,
+          totalShawarmasEarned:
+            prev.totalShawarmasEarned + prev.shawarmasPerSecond,
+        };
+      });
     }, 1000);
 
     return () => clearInterval(interval);
@@ -321,8 +165,7 @@ const ShawarmaClicker: React.FC = () => {
 
   // Show milestone notifications
   useEffect(() => {
-    const milestones = [10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000];
-    milestones.forEach((milestone) => {
+    MILESTONES.forEach((milestone) => {
       if (
         gameState.totalShawarmasEarned >= milestone &&
         gameState.totalShawarmasEarned - gameState.shawarmasPerSecond <
@@ -344,17 +187,25 @@ const ShawarmaClicker: React.FC = () => {
     setNotifications((prev) => [...prev, notification]);
   };
 
-  const removeNotification = (id: string) => {
+  const removeNotification = useCallback((id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
+  }, []);
 
   // Click animation cleanup
   useEffect(() => {
     const cleanup = setTimeout(() => {
-      setClickAnimations((prev) => prev.slice(-5)); // Keep only last 5 animations
-    }, 2000);
+      setClickAnimations((prev) => prev.slice(-MAX_CLICK_ANIMATIONS));
+    }, ANIMATION_CLEANUP_DELAY);
     return () => clearTimeout(cleanup);
   }, [clickAnimations]);
+
+  // Production animation cleanup
+  useEffect(() => {
+    const cleanup = setTimeout(() => {
+      setProductionAnimations((prev) => prev.slice(-MAX_PRODUCTION_ANIMATIONS));
+    }, ANIMATION_CLEANUP_DELAY);
+    return () => clearTimeout(cleanup);
+  }, [productionAnimations]);
 
   const handleShawarmaClick = useCallback(
     (event: React.MouseEvent) => {
@@ -443,122 +294,21 @@ const ShawarmaClicker: React.FC = () => {
   };
 
   const resetGame = () => {
-    setGameState({
-      shawarmas: 0,
-      shawarmasPerSecond: 0,
-      shawarmasPerClick: 1,
-      totalShawarmasEarned: 0,
-      prestige: 0,
-      achievements: [],
-    });
-
-    // Reset upgrades to initial state
-    setUpgrades([
-      {
-        id: "cursor",
-        name: "Auto Flipper",
-        description: "Automatically flips shawarmas for you",
-        cost: 15,
-        owned: 0,
-        baseProduction: 0.1,
-        costMultiplier: 1.15,
-        icon: "👆",
-      },
-      {
-        id: "kitchen",
-        name: "Kitchen Helper",
-        description: "A helper to prepare shawarmas faster",
-        cost: 100,
-        owned: 0,
-        baseProduction: 1,
-        costMultiplier: 1.15,
-        icon: "👨‍🍳",
-      },
-      {
-        id: "grill",
-        name: "Professional Grill",
-        description: "High-quality grill for perfect shawarmas",
-        cost: 1100,
-        owned: 0,
-        baseProduction: 8,
-        costMultiplier: 1.15,
-        icon: "🔥",
-      },
-      {
-        id: "restaurant",
-        name: "Shawarma Restaurant",
-        description: "Your own restaurant serving customers",
-        cost: 12000,
-        owned: 0,
-        baseProduction: 47,
-        costMultiplier: 1.15,
-        icon: "🏪",
-      },
-      {
-        id: "factory",
-        name: "Shawarma Factory",
-        description: "Mass production of delicious shawarmas",
-        cost: 130000,
-        owned: 0,
-        baseProduction: 260,
-        costMultiplier: 1.15,
-        icon: "🏭",
-      },
-      {
-        id: "franchise",
-        name: "Shawarma Franchise",
-        description: "Expand your business across the world",
-        cost: 1400000,
-        owned: 0,
-        baseProduction: 1400,
-        costMultiplier: 1.15,
-        icon: "🌍",
-      },
-    ]);
-
-    setClickUpgrades([
-      {
-        id: "better_hands",
-        name: "Better Hands",
-        description: "Double your clicking power",
-        cost: 100,
-        owned: false,
-        multiplier: 2,
-      },
-      {
-        id: "golden_touch",
-        name: "Golden Touch",
-        description: "Triple your clicking power",
-        cost: 1000,
-        owned: false,
-        multiplier: 3,
-      },
-      {
-        id: "master_chef",
-        name: "Master Chef",
-        description: "5x clicking power",
-        cost: 10000,
-        owned: false,
-        multiplier: 5,
-      },
-    ]);
-
-    // Reset stats
+    setGameState(initialGameState);
+    setUpgrades(initialUpgrades);
+    setClickUpgrades(initialClickUpgrades);
     setGameStats({
       totalClicks: 0,
       gameStartTime: Date.now(),
       bestClickRate: 0,
       totalUpgradesPurchased: 0,
     });
+    setNotifications([]);
 
-    // Clear localStorage to avoid conflicts
     localStorage.removeItem("shawarma-game-state");
     localStorage.removeItem("shawarma-upgrades");
     localStorage.removeItem("shawarma-click-upgrades");
     localStorage.removeItem("shawarma-stats");
-
-    // Clear notifications
-    setNotifications([]);
   };
 
   const saveGame = () => {
@@ -589,59 +339,6 @@ const ShawarmaClicker: React.FC = () => {
       type: "milestone",
       timestamp: Date.now(),
     });
-  };
-
-  const loadGame = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const saveData = JSON.parse(e.target?.result as string);
-
-        if (saveData.gameState) setGameState(saveData.gameState);
-        if (saveData.upgrades) setUpgrades(saveData.upgrades);
-        if (saveData.clickUpgrades) setClickUpgrades(saveData.clickUpgrades);
-
-        addNotification({
-          id: `load-${Date.now()}`,
-          title: "Game Loaded!",
-          message: "Save file loaded successfully",
-          type: "milestone",
-          timestamp: Date.now(),
-        });
-      } catch (error) {
-        addNotification({
-          id: `load-error-${Date.now()}`,
-          title: "Load Failed!",
-          message: "Invalid save file format",
-          type: "milestone",
-          timestamp: Date.now(),
-        });
-      }
-    };
-    reader.readAsText(file);
-
-    // Reset the input
-    event.target.value = "";
-  };
-
-  const formatNumber = (num: number): string => {
-    if (num >= 1e12) return (num / 1e12).toFixed(2) + "T";
-    if (num >= 1e9) return (num / 1e9).toFixed(2) + "B";
-    if (num >= 1e6) return (num / 1e6).toFixed(2) + "M";
-    if (num >= 1e3) return (num / 1e3).toFixed(2) + "K";
-    return Math.floor(num).toLocaleString();
-  };
-
-  const formatPerSecond = (num: number): string => {
-    if (num >= 1e12) return (num / 1e12).toFixed(2) + "T";
-    if (num >= 1e9) return (num / 1e9).toFixed(2) + "B";
-    if (num >= 1e6) return (num / 1e6).toFixed(2) + "M";
-    if (num >= 1e3) return (num / 1e3).toFixed(2) + "K";
-    if (num >= 1) return num.toFixed(1);
-    return num.toFixed(1);
   };
 
   return (
@@ -684,80 +381,16 @@ const ShawarmaClicker: React.FC = () => {
           ))}
         </Box>
 
-        {/* Top-Right Control Buttons */}
-        <Box position="absolute" top="20px" right="20px" zIndex="1000">
-          <HStack gap={2}>
-            <Button
-              onClick={resetGame}
-              colorScheme="orange"
-              size="sm"
-              variant="solid"
-              px={3}
-              py={2}
-              borderRadius="md"
-              fontSize="xs"
-              fontWeight="medium"
-              _hover={{
-                transform: "translateY(-1px)",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
-              }}
-              _focus={{ boxShadow: "none" }}
-              _active={{ transform: "scale(0.95)" }}
-              transition="all 0.2s"
-            >
-              <FaRedo style={{ marginRight: "4px" }} /> Reset
-            </Button>
-            <Button
-              onClick={saveGame}
-              colorScheme="blue"
-              size="sm"
-              variant="solid"
-              px={3}
-              py={2}
-              borderRadius="md"
-              fontSize="xs"
-              fontWeight="medium"
-              _hover={{
-                transform: "translateY(-1px)",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
-              }}
-              _focus={{ boxShadow: "none" }}
-              _active={{ transform: "scale(0.95)" }}
-              transition="all 0.2s"
-            >
-              <FaSave style={{ marginRight: "4px" }} /> Save
-            </Button>
-            <Box as="label">
-              <Button
-                as="span"
-                colorScheme="purple"
-                size="sm"
-                cursor="pointer"
-                variant="solid"
-                px={3}
-                py={2}
-                borderRadius="md"
-                fontSize="xs"
-                fontWeight="medium"
-                _hover={{
-                  transform: "translateY(-1px)",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
-                }}
-                _focus={{ boxShadow: "none" }}
-                _active={{ transform: "scale(0.95)" }}
-                transition="all 0.2s"
-              >
-                <FaDownload style={{ marginRight: "4px" }} /> Load
-              </Button>
-              <input
-                type="file"
-                accept=".json"
-                onChange={loadGame}
-                style={{ display: "none" }}
-              />
-            </Box>
-          </HStack>
-        </Box>
+        <GameControls
+          onReset={resetGame}
+          onSave={saveGame}
+          onLoad={(newGameState, newUpgrades, newClickUpgrades) => {
+            setGameState(newGameState);
+            setUpgrades(newUpgrades);
+            setClickUpgrades(newClickUpgrades);
+          }}
+          addNotification={addNotification}
+        />
 
         <VStack
           h="100vh"
@@ -768,28 +401,41 @@ const ShawarmaClicker: React.FC = () => {
         >
           {/* Header */}
           <Box
-            p={4}
+            p={{ base: 3, md: 4 }}
             bg="rgba(26, 32, 44, 0.95)"
             borderBottomWidth="1px"
             borderBottomColor="gray.700"
             backdropFilter="blur(10px)"
             boxShadow="0 4px 6px rgba(0, 0, 0, 0.3)"
           >
-            <VStack gap={4}>
-              <Text fontSize="4xl" fontWeight="bold" color="orange.400">
+            <VStack gap={{ base: 2, md: 4 }}>
+              <Text
+                fontSize={{ base: "2xl", sm: "3xl", md: "4xl" }}
+                fontWeight="bold"
+                color="orange.400"
+                textAlign="center"
+              >
                 🥙 Shawarma Clicker 🥙
               </Text>
-              <HStack gap={8} justify="center" wrap="wrap">
+              <HStack gap={{ base: 4, md: 8 }} justify="center" wrap="wrap">
                 <VStack gap={1}>
-                  <Text fontSize="2xl" fontWeight="bold" color="orange.300">
-                    {formatNumber(gameState.shawarmas)}
+                  <Text
+                    fontSize={{ base: "xl", md: "2xl" }}
+                    fontWeight="bold"
+                    color="orange.300"
+                  >
+                    {formatShawarmaCount(gameState.shawarmas)}
                   </Text>
                   <Text fontSize="sm" color="gray.400">
                     Shawarmas
                   </Text>
                 </VStack>
                 <VStack gap={1}>
-                  <Text fontSize="lg" fontWeight="semibold" color="orange.300">
+                  <Text
+                    fontSize={{ base: "md", md: "lg" }}
+                    fontWeight="semibold"
+                    color="orange.300"
+                  >
                     {formatPerSecond(gameState.shawarmasPerSecond)}/sec
                   </Text>
                   <Text fontSize="sm" color="gray.400">
@@ -805,11 +451,51 @@ const ShawarmaClicker: React.FC = () => {
                   </Text>
                 </VStack>
               </HStack>
+
+              {/* Mobile-only game info */}
+              <VStack gap={2} display={{ base: "flex", md: "none" }} mt={2}>
+                <Text
+                  fontSize="sm"
+                  textAlign="center"
+                  color="orange.300"
+                  fontWeight="medium"
+                >
+                  Tap the Shawarma! +
+                  {gameState.shawarmasPerClick * clickMultiplier} per tap
+                  {clickMultiplier > 1 && (
+                    <Text as="span" color="purple.400" fontWeight="bold" ml={1}>
+                      (🔥 {clickMultiplier}x!)
+                    </Text>
+                  )}
+                </Text>
+
+                {gameState.shawarmasPerSecond > 0 && (
+                  <HStack gap={2} justify="center">
+                    <Text fontSize="xs" color="cyan.300">
+                      Auto-production:{" "}
+                      {formatPerSecond(gameState.shawarmasPerSecond)}/sec
+                    </Text>
+                  </HStack>
+                )}
+              </VStack>
             </VStack>
           </Box>
 
           {/* Main Game Area */}
-          <Grid templateColumns="1fr 400px" flex="1" gap={0} minH="0">
+          <Grid
+            templateColumns={{
+              base: "1fr",
+              md: "1fr 350px",
+              lg: "1fr 400px",
+            }}
+            templateRows={{
+              base: "1fr auto",
+              md: "1fr",
+            }}
+            flex="1"
+            gap={0}
+            minH="0"
+          >
             {/* Main Shawarma Area */}
             <Box
               h="full"
@@ -833,15 +519,18 @@ const ShawarmaClicker: React.FC = () => {
                 animation="backgroundMove 20s linear infinite"
               />
 
-              <VStack gap={6} align="center" zIndex="2">
+              <VStack gap={{ base: 3, md: 6 }} align="center" zIndex="2">
                 {/* Animated Background Behind Shawarma */}
                 <AnimatedBackground />
 
+                {/* Instructions text - only show on medium+ screens */}
                 <Text
-                  fontSize="2xl"
+                  fontSize={{ base: "lg", sm: "xl", md: "2xl" }}
                   textAlign="center"
                   color="orange.300"
                   fontWeight="semibold"
+                  px={4}
+                  display={{ base: "none", md: "block" }}
                 >
                   Click the Shawarma to earn more!
                 </Text>
@@ -854,12 +543,24 @@ const ShawarmaClicker: React.FC = () => {
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
-                    w="400px"
-                    h="400px"
+                    w={{
+                      base: "140px",
+                      sm: "180px",
+                      md: "240px",
+                      lg: "320px",
+                      xl: "380px",
+                    }}
+                    h={{
+                      base: "140px",
+                      sm: "180px",
+                      md: "240px",
+                      lg: "320px",
+                      xl: "380px",
+                    }}
                     borderRadius="50%"
                     bg="transparent"
                     _hover={{
-                      transform: "scale(1.1)",
+                      transform: "scale(1.05)",
                       filter: "drop-shadow(0 0 50px rgba(251, 211, 141, 0.8))",
                     }}
                     _active={{
@@ -869,7 +570,13 @@ const ShawarmaClicker: React.FC = () => {
                     userSelect="none"
                   >
                     <Text
-                      fontSize="350px"
+                      fontSize={{
+                        base: "110px",
+                        sm: "140px",
+                        md: "190px",
+                        lg: "250px",
+                        xl: "320px",
+                      }}
                       animation="shawarmaGlow 3s ease-in-out infinite"
                       lineHeight="1"
                     >
@@ -884,21 +591,50 @@ const ShawarmaClicker: React.FC = () => {
                       position="absolute"
                       left={`${anim.x}px`}
                       top={`${anim.y}px`}
-                      fontSize="2xl"
+                      fontSize={{ base: "2xl", md: "4xl" }}
                       fontWeight="bold"
                       color="orange.300"
                       pointerEvents="none"
                       animation="clickFloat 1s ease-out forwards"
                       transform="translate(-50%, -50%)"
-                      textShadow="0 2px 4px rgba(0,0,0,0.5)"
+                      textShadow="0 3px 6px rgba(0,0,0,0.7)"
                     >
                       +{gameState.shawarmasPerClick * clickMultiplier}
                     </Text>
                   ))}
+
+                  {/* Production animations */}
+                  {productionAnimations.map((anim) => (
+                    <Text
+                      key={anim.id}
+                      position="absolute"
+                      left={`${anim.x}px`}
+                      top={`${anim.y}px`}
+                      fontSize={{ base: "xl", md: "3xl" }}
+                      fontWeight="bold"
+                      color="cyan.300"
+                      pointerEvents="none"
+                      animation="productionFloat 2s ease-out forwards"
+                      transform="translate(-50%, -50%)"
+                      textShadow="0 3px 6px rgba(0,0,0,0.7)"
+                    >
+                      +{formatPerSecond(anim.amount)} 🥙
+                    </Text>
+                  ))}
                 </Box>
 
-                <VStack gap={2} align="center">
-                  <Text textAlign="center" color="gray.300" fontSize="lg">
+                {/* Per-click text and progress bar - only show on medium+ screens */}
+                <VStack
+                  gap={{ base: 4, md: 6 }}
+                  align="center"
+                  display={{ base: "none", md: "flex" }}
+                >
+                  <Text
+                    textAlign="center"
+                    color="gray.300"
+                    fontSize={{ base: "md", md: "lg" }}
+                    px={4}
+                  >
                     +{gameState.shawarmasPerClick * clickMultiplier} per click
                     {clickMultiplier > 1 && (
                       <Text
@@ -914,7 +650,10 @@ const ShawarmaClicker: React.FC = () => {
 
                   {/* Production Progress Bar */}
                   {gameState.shawarmasPerSecond > 0 && (
-                    <Box w="full" maxW="400px">
+                    <Box
+                      w="full"
+                      maxW={{ base: "90%", sm: "350px", md: "400px" }}
+                    >
                       <Text
                         fontSize="sm"
                         mb={2}
@@ -949,11 +688,14 @@ const ShawarmaClicker: React.FC = () => {
             {/* Upgrades Panel */}
             <Box
               bg="rgba(26, 32, 44, 0.95)"
-              borderLeftWidth="1px"
+              borderLeftWidth={{ base: "0", md: "1px" }}
+              borderTopWidth={{ base: "1px", md: "0" }}
               borderLeftColor="gray.700"
-              h="full"
+              borderTopColor="gray.700"
+              h={{ base: "50vh", md: "full" }}
               overflowY="auto"
               backdropFilter="blur(10px)"
+              display={{ base: "block", md: "block" }}
               css={{
                 "&::-webkit-scrollbar": {
                   width: "8px",
@@ -1032,7 +774,15 @@ const ShawarmaClicker: React.FC = () => {
                                 {upgrade.name}
                               </Text>
                               {upgrade.owned > 0 && (
-                                <Badge colorScheme="orange" variant="solid">
+                                <Badge
+                                  colorScheme="orange"
+                                  variant="solid"
+                                  userSelect="none"
+                                  _selection={{ bg: "transparent" }}
+                                  px={2}
+                                  py={0.5}
+                                  borderRadius="md"
+                                >
                                   {upgrade.owned}
                                 </Badge>
                               )}
@@ -1133,7 +883,15 @@ const ShawarmaClicker: React.FC = () => {
                                 {upgrade.name}
                               </Text>
                               {upgrade.owned && (
-                                <Badge colorScheme="green" variant="solid">
+                                <Badge
+                                  colorScheme="green"
+                                  variant="solid"
+                                  userSelect="none"
+                                  _selection={{ bg: "transparent" }}
+                                  px={2}
+                                  py={0.5}
+                                  borderRadius="md"
+                                >
                                   OWNED
                                 </Badge>
                               )}
@@ -1159,53 +917,117 @@ const ShawarmaClicker: React.FC = () => {
 
                 {/* Achievements */}
                 <Box>
-                  <Text
-                    fontSize="xl"
-                    fontWeight="bold"
-                    mb={4}
-                    color="yellow.400"
+                  <HStack
+                    justify="space-between"
+                    align="center"
+                    mb={showAchievements ? 4 : 2}
+                    cursor="pointer"
+                    onClick={() => setShowAchievements(!showAchievements)}
+                    _hover={{ bg: "rgba(255, 255, 255, 0.05)" }}
+                    p={2}
+                    borderRadius="md"
+                    transition="all 0.2s"
                   >
-                    Achievements ({gameState.achievements.length}/
-                    {achievements.length})
-                  </Text>
-                  <VStack gap={2}>
-                    {achievements.map((achievement) => {
-                      const unlocked = gameState.achievements.includes(
-                        achievement.id
-                      );
-                      return (
-                        <Box
-                          key={achievement.id}
-                          p={2}
-                          w="full"
-                          bg={
-                            unlocked
-                              ? "rgba(72, 187, 120, 0.1)"
-                              : "rgba(74, 85, 104, 0.3)"
-                          }
-                          borderWidth="1px"
-                          borderColor={unlocked ? "green.400" : "gray.600"}
-                          borderRadius="lg"
-                        >
-                          <HStack>
-                            <Text fontSize="lg">{unlocked ? "🏆" : "🔒"}</Text>
-                            <VStack align="start" gap={0} flex={1}>
+                    <Text fontSize="xl" fontWeight="bold" color="yellow.400">
+                      Achievements ({gameState.achievements.length}/
+                      {achievements.length})
+                    </Text>
+                    <Text fontSize="lg" color="yellow.400">
+                      {showAchievements ? "▼" : "▶"}
+                    </Text>
+                  </HStack>
+
+                  {showAchievements && (
+                    <Grid templateColumns="repeat(2, 1fr)" gap={2}>
+                      {achievements.map((achievement) => {
+                        const unlocked = gameState.achievements.includes(
+                          achievement.id
+                        );
+                        return (
+                          <Box
+                            key={achievement.id}
+                            p={2}
+                            bg={
+                              unlocked
+                                ? "rgba(72, 187, 120, 0.1)"
+                                : "rgba(74, 85, 104, 0.3)"
+                            }
+                            borderWidth="1px"
+                            borderColor={unlocked ? "green.400" : "gray.600"}
+                            borderRadius="md"
+                            position="relative"
+                            overflow="hidden"
+                            title={achievement.description}
+                          >
+                            <VStack align="start" gap={1}>
+                              <HStack gap={1}>
+                                <Text fontSize="sm">
+                                  {unlocked ? "🏆" : "🔒"}
+                                </Text>
+                                <Text
+                                  fontSize="xs"
+                                  fontWeight="semibold"
+                                  color="white"
+                                  overflow="hidden"
+                                  textOverflow="ellipsis"
+                                  whiteSpace="nowrap"
+                                >
+                                  {achievement.name}
+                                </Text>
+                              </HStack>
                               <Text
-                                fontSize="sm"
-                                fontWeight="semibold"
-                                color="white"
+                                fontSize="xs"
+                                color="gray.400"
+                                lineHeight="1.2"
+                                overflow="hidden"
+                                textOverflow="ellipsis"
+                                display="-webkit-box"
+                                css={{
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: "vertical",
+                                }}
                               >
-                                {achievement.name}
-                              </Text>
-                              <Text fontSize="xs" color="gray.400">
                                 {achievement.description}
                               </Text>
                             </VStack>
-                          </HStack>
-                        </Box>
-                      );
-                    })}
-                  </VStack>
+                            {unlocked && (
+                              <Box
+                                position="absolute"
+                                top="0"
+                                right="0"
+                                bg="green.400"
+                                color="white"
+                                fontSize="xs"
+                                px={1}
+                                transform="rotate(45deg) translate(30%, -30%)"
+                                w="40px"
+                                textAlign="center"
+                              >
+                                ✓
+                              </Box>
+                            )}
+                          </Box>
+                        );
+                      })}
+                    </Grid>
+                  )}
+
+                  {!showAchievements && (
+                    <HStack justify="center" gap={2} mt={2}>
+                      {[
+                        ...Array(Math.min(6, gameState.achievements.length)),
+                      ].map((_, i) => (
+                        <Text key={i} fontSize="sm">
+                          🏆
+                        </Text>
+                      ))}
+                      {gameState.achievements.length > 6 && (
+                        <Text fontSize="sm" color="gray.400">
+                          +{gameState.achievements.length - 6}
+                        </Text>
+                      )}
+                    </HStack>
+                  )}
                 </Box>
 
                 {/* Stats Panel */}
@@ -1226,11 +1048,34 @@ const ShawarmaClicker: React.FC = () => {
             @keyframes clickFloat {
               0% {
                 opacity: 1;
-                transform: translate(-50%, -50%) translateY(0px) scale(1);
+                transform: translate(-50%, -50%) translateY(0px) scale(0.8);
+              }
+              50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) translateY(-30px) scale(1.2);
               }
               100% {
                 opacity: 0;
-                transform: translate(-50%, -50%) translateY(-60px) scale(1.2);
+                transform: translate(-50%, -50%) translateY(-80px) scale(1.4);
+              }
+            }
+
+            @keyframes productionFloat {
+              0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) translateY(0px) scale(0.6);
+              }
+              30% {
+                opacity: 0.9;
+                transform: translate(-50%, -50%) translateY(-25px) scale(1.1);
+              }
+              70% {
+                opacity: 0.7;
+                transform: translate(-50%, -50%) translateY(-55px) scale(1.2);
+              }
+              100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) translateY(-90px) scale(1.3);
               }
             }
             

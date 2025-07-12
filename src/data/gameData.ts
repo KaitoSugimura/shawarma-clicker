@@ -1,0 +1,269 @@
+import type {
+  Upgrade,
+  ClickUpgrade,
+  Achievement,
+  GameState,
+} from "../types/game";
+
+export const initialGameState: GameState = {
+  shawarmas: 0,
+  shawarmasPerSecond: 0,
+  shawarmasPerClick: 1,
+  totalShawarmasEarned: 0,
+  prestige: 0,
+  achievements: [],
+};
+
+export const initialUpgrades: Upgrade[] = [
+  {
+    id: "cursor",
+    name: "Auto Flipper",
+    description: "Automatically flips shawarmas for you",
+    cost: 15,
+    owned: 0,
+    baseProduction: 0.1,
+    costMultiplier: 1.15,
+    icon: "👆",
+  },
+  {
+    id: "kitchen",
+    name: "Kitchen Helper",
+    description: "A helper to prepare shawarmas faster",
+    cost: 100,
+    owned: 0,
+    baseProduction: 1,
+    costMultiplier: 1.15,
+    icon: "👨‍🍳",
+  },
+  {
+    id: "grill",
+    name: "Professional Grill",
+    description: "High-quality grill for perfect shawarmas",
+    cost: 1100,
+    owned: 0,
+    baseProduction: 8,
+    costMultiplier: 1.15,
+    icon: "🔥",
+  },
+  {
+    id: "restaurant",
+    name: "Shawarma Restaurant",
+    description: "Your own restaurant serving customers",
+    cost: 12000,
+    owned: 0,
+    baseProduction: 47,
+    costMultiplier: 1.15,
+    icon: "🏪",
+  },
+  {
+    id: "factory",
+    name: "Shawarma Factory",
+    description: "Mass production of delicious shawarmas",
+    cost: 130000,
+    owned: 0,
+    baseProduction: 260,
+    costMultiplier: 1.15,
+    icon: "🏭",
+  },
+  {
+    id: "franchise",
+    name: "Shawarma Franchise",
+    description: "Expand your business across the world",
+    cost: 1400000,
+    owned: 0,
+    baseProduction: 1400,
+    costMultiplier: 1.15,
+    icon: "🌍",
+  },
+];
+
+export const initialClickUpgrades: ClickUpgrade[] = [
+  {
+    id: "better_hands",
+    name: "Better Hands",
+    description: "Double your clicking power",
+    cost: 100,
+    owned: false,
+    multiplier: 2,
+  },
+  {
+    id: "golden_touch",
+    name: "Golden Touch",
+    description: "Triple your clicking power",
+    cost: 1000,
+    owned: false,
+    multiplier: 3,
+  },
+  {
+    id: "master_chef",
+    name: "Master Chef",
+    description: "5x clicking power",
+    cost: 10000,
+    owned: false,
+    multiplier: 5,
+  },
+];
+
+export const achievements: Achievement[] = [
+  {
+    id: "first_shawarma",
+    name: "First Bite",
+    description: "Click your first shawarma",
+    requirement: (state) => state.totalShawarmasEarned >= 1,
+  },
+  {
+    id: "hundred_shawarmas",
+    name: "Shawarma Lover",
+    description: "Earn 100 shawarmas",
+    requirement: (state) => state.totalShawarmasEarned >= 100,
+  },
+  {
+    id: "thousand_shawarmas",
+    name: "Shawarma Addict",
+    description: "Earn 1,000 shawarmas",
+    requirement: (state) => state.totalShawarmasEarned >= 1000,
+  },
+  {
+    id: "ten_thousand_shawarmas",
+    name: "Shawarma Master",
+    description: "Earn 10,000 shawarmas",
+    requirement: (state) => state.totalShawarmasEarned >= 10000,
+  },
+  {
+    id: "hundred_thousand_shawarmas",
+    name: "Shawarma Tycoon",
+    description: "Earn 100,000 shawarmas",
+    requirement: (state) => state.totalShawarmasEarned >= 100000,
+  },
+  {
+    id: "million_shawarmas",
+    name: "Shawarma Millionaire",
+    description: "Earn 1,000,000 shawarmas",
+    requirement: (state) => state.totalShawarmasEarned >= 1000000,
+  },
+  {
+    id: "ten_million_shawarmas",
+    name: "Shawarma Mogul",
+    description: "Earn 10,000,000 shawarmas",
+    requirement: (state) => state.totalShawarmasEarned >= 10000000,
+  },
+  {
+    id: "hundred_million_shawarmas",
+    name: "Shawarma Emperor",
+    description: "Earn 100,000,000 shawarmas",
+    requirement: (state) => state.totalShawarmasEarned >= 100000000,
+  },
+  {
+    id: "billion_shawarmas",
+    name: "Shawarma God",
+    description: "Earn 1,000,000,000 shawarmas - The ultimate achievement!",
+    requirement: (state) => state.totalShawarmasEarned >= 1000000000,
+  },
+  {
+    id: "first_upgrade",
+    name: "Getting Automated",
+    description: "Buy your first upgrade",
+    requirement: (_state, upgrades) => upgrades.some((u) => u.owned > 0),
+  },
+  {
+    id: "upgrade_collector",
+    name: "Upgrade Collector",
+    description: "Own at least 1 of every upgrade type",
+    requirement: (_state, upgrades) => upgrades.every((u) => u.owned > 0),
+  },
+  {
+    id: "hundred_upgrades",
+    name: "Mass Production",
+    description: "Own 100 total upgrades",
+    requirement: (_state, upgrades) =>
+      upgrades.reduce((sum, u) => sum + u.owned, 0) >= 100,
+  },
+  {
+    id: "thousand_upgrades",
+    name: "Industrial Revolution",
+    description: "Own 1,000 total upgrades",
+    requirement: (_state, upgrades) =>
+      upgrades.reduce((sum, u) => sum + u.owned, 0) >= 1000,
+  },
+  {
+    id: "fast_production",
+    name: "Speed Demon",
+    description: "Produce 10 shawarmas per second",
+    requirement: (state) => state.shawarmasPerSecond >= 10,
+  },
+  {
+    id: "production_master",
+    name: "Production Master",
+    description: "Produce 100 shawarmas per second",
+    requirement: (state) => state.shawarmasPerSecond >= 100,
+  },
+  {
+    id: "production_lord",
+    name: "Production Lord",
+    description: "Produce 1,000 shawarmas per second",
+    requirement: (state) => state.shawarmasPerSecond >= 1000,
+  },
+  {
+    id: "production_god",
+    name: "Production God",
+    description: "Produce 10,000 shawarmas per second",
+    requirement: (state) => state.shawarmasPerSecond >= 10000,
+  },
+  {
+    id: "click_power",
+    name: "Strong Fingers",
+    description: "Click power reaches 10 per click",
+    requirement: (state) => state.shawarmasPerClick >= 10,
+  },
+  {
+    id: "super_click",
+    name: "Super Clicker",
+    description: "Click power reaches 100 per click",
+    requirement: (state) => state.shawarmasPerClick >= 100,
+  },
+  {
+    id: "ultimate_click",
+    name: "Ultimate Clicker",
+    description: "Click power reaches 1,000 per click",
+    requirement: (state) => state.shawarmasPerClick >= 1000,
+  },
+  {
+    id: "cursor_army",
+    name: "Finger Army",
+    description: "Own 100 Auto Flippers",
+    requirement: (_state, upgrades) =>
+      (upgrades.find((u) => u.id === "cursor")?.owned ?? 0) >= 100,
+  },
+  {
+    id: "kitchen_empire",
+    name: "Kitchen Empire",
+    description: "Own 50 Kitchen Helpers",
+    requirement: (_state, upgrades) =>
+      (upgrades.find((u) => u.id === "kitchen")?.owned ?? 0) >= 50,
+  },
+  {
+    id: "factory_complex",
+    name: "Factory Complex",
+    description: "Own 25 Shawarma Factories",
+    requirement: (_state, upgrades) =>
+      (upgrades.find((u) => u.id === "factory")?.owned ?? 0) >= 25,
+  },
+  {
+    id: "dedicated_player",
+    name: "Dedicated Player",
+    description: "Unlock 10 achievements",
+    requirement: (state) => state.achievements.length >= 10,
+  },
+  {
+    id: "achievement_hunter",
+    name: "Achievement Hunter",
+    description: "Unlock 20 achievements",
+    requirement: (state) => state.achievements.length >= 20,
+  },
+  {
+    id: "completionist",
+    name: "Completionist",
+    description: "Unlock all achievements",
+    requirement: (state) => state.achievements.length >= 27,
+  },
+];
