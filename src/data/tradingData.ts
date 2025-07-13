@@ -82,6 +82,6 @@ export const TRADING_CONFIG = {
   VOLATILITY_MULTIPLIER: 0.15, // Higher volatility for more excitement
   VOLATILITY_PERIOD_MIN: 5 * 60 * 1000, // 5 minutes minimum
   VOLATILITY_PERIOD_MAX: 10 * 60 * 1000, // 10 minutes maximum
-  VOLATILITY_PERIOD_DURATION: 2 * 60 * 1000, // 2 minutes of high volatility
-  VOLATILITY_PERIOD_MULTIPLIER: 4, // 4x normal volatility during periods
+  VOLATILITY_PERIOD_DURATION: 5 * 1000, // 5 seconds of bull run
+  VOLATILITY_PERIOD_MULTIPLIER: 1.5, // 1.5x normal volatility for controlled 400% max increase
 } as const;

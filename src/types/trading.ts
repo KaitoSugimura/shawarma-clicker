@@ -40,7 +40,12 @@ export interface TradingState {
   selectedFood: string;
   shawarmaBalance: number;
   volatilityPeriods: {
-    [foodId: string]: { active: boolean; endTime: number; multiplier: number };
+    [foodId: string]: {
+      active: boolean;
+      endTime: number;
+      multiplier: number;
+      startPrice?: number;
+    };
   };
   lastVolatilityCheck: number;
 }

@@ -38,8 +38,7 @@ const TradingPanel: React.FC = () => {
   )!;
   const currentPrice = trading.currentPrices[trading.selectedFood];
 
-  useEffect(() => {
-  }, []);
+  useEffect(() => {}, []);
 
   useEffect(() => {
     const priceUpdateInterval = setInterval(() => {
@@ -64,12 +63,13 @@ const TradingPanel: React.FC = () => {
               active: true,
               endTime: currentTime + TRADING_CONFIG.VOLATILITY_PERIOD_DURATION,
               multiplier: TRADING_CONFIG.VOLATILITY_PERIOD_MULTIPLIER,
+              startPrice: newPrices[selectedFood.id],
             };
 
             toaster.create({
-              title: "🌪️ VOLATILITY ALERT!",
-              description: `${selectedFood.name} (${selectedFood.symbol}) is experiencing extreme volatility! Prices are moving rapidly!`,
-              type: "warning",
+              title: "🚀 BULL RUN ALERT!",
+              description: `${selectedFood.name} (${selectedFood.symbol}) is entering a bull run! Prices are surging upward!`,
+              type: "success",
               duration: 5000,
             });
           }
@@ -87,6 +87,7 @@ const TradingPanel: React.FC = () => {
             active: false,
             endTime: 0,
             multiplier: 1,
+            startPrice: undefined,
           };
         }
       });
@@ -101,8 +102,17 @@ const TradingPanel: React.FC = () => {
           ? baseVolatility * volatilityPeriod.multiplier
           : baseVolatility;
 
-        const change = (Math.random() - 0.5) * 2 * volatility * currentPrice;
-        const newPrice = Math.max(0.001, currentPrice + change);
+        const change = volatilityPeriod?.active
+          ? Math.random() * volatility * currentPrice
+          : (Math.random() - 0.5) * 2 * volatility * currentPrice;
+
+        let newPrice = Math.max(0.001, currentPrice + change);
+
+        // Limit bull run to 400% max increase
+        if (volatilityPeriod?.active && volatilityPeriod.startPrice) {
+          const maxPrice = volatilityPeriod.startPrice * 5; // 400% increase = 5x original
+          newPrice = Math.min(newPrice, maxPrice);
+        }
 
         const priceChangePercent =
           Math.abs((newPrice - currentPrice) / currentPrice) * 100;
@@ -277,7 +287,7 @@ const TradingPanel: React.FC = () => {
 
   return (
     <Box w="full" bg="rgba(26, 32, 44, 0.95)" p={3} h="full" overflowY="auto">
-      <VStack gap={3} align="stretch" h="full">
+      <VStack gap={0} align="stretch" h="full">
         <HStack justify="space-between" align="center">
           <VStack align="start" gap={0}>
             <Text fontSize="xl" fontWeight="bold" color="white">
@@ -601,7 +611,7 @@ const TradingPanel: React.FC = () => {
             </Box>
 
             <Box flex={1} minH="120px">
-              <Text fontSize="md" fontWeight="bold" color="white" mb={2}>
+              <Text fontSize="md" fontWeight="bold" color="white" mb={1}>
                 📊 Recent Trades
               </Text>
 
