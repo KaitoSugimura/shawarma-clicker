@@ -336,7 +336,7 @@ const TradingPanel: React.FC = () => {
             <HStack justify="space-between" align="center">
               <HStack gap={2}>
                 <Text fontSize="sm" color="purple.300" fontWeight="bold">
-                  ⚡ ACTIVE VOLATILITY PERIODS
+                  🚀 ACTIVE BULL RUN EVENTS
                 </Text>
                 <Badge colorScheme="purple" variant="solid">
                   {
