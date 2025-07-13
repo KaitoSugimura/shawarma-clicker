@@ -51,8 +51,20 @@ const TradingPanel: React.FC = () => {
         currentTime - trading.lastVolatilityCheck >
         TRADING_CONFIG.VOLATILITY_PERIOD_MIN
       ) {
+        const timeSinceLastCheck = currentTime - trading.lastVolatilityCheck;
+        const maxWaitTime = TRADING_CONFIG.VOLATILITY_PERIOD_MAX;
+
+        // Calculate probability that increases over time
+        // At min time: 10% chance, at max time: 100% chance
+        const timeProgress = Math.min(
+          1,
+          (timeSinceLastCheck - TRADING_CONFIG.VOLATILITY_PERIOD_MIN) /
+            (maxWaitTime - TRADING_CONFIG.VOLATILITY_PERIOD_MIN)
+        );
+        const probability = 0.1 + 0.9 * timeProgress;
+
         const randomChance = Math.random();
-        if (randomChance < 0.1) {
+        if (randomChance < probability) {
           const availableFoods = FOOD_ITEMS.filter(
             (food) => !trading.volatilityPeriods[food.id]?.active
           );
@@ -87,7 +99,6 @@ const TradingPanel: React.FC = () => {
             active: false,
             endTime: 0,
             multiplier: 1,
-            startPrice: undefined,
           };
         }
       });

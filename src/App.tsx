@@ -99,7 +99,7 @@ function App() {
           <HStack gap={3}>
             {/* Manual Save Button */}
             <Button
-              onClick={saveGame}
+              onClick={() => saveGame()}
               colorScheme="green"
               size="sm"
               variant="outline"

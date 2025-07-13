@@ -457,7 +457,9 @@ interface GameContextType {
   user: User | null;
   authLoading: boolean;
   gameLoading: boolean;
-  saveGame: () => void;
+  saveGame: (isAutoSave?: boolean) => void; // Fix: Add the optional parameter
+  recoverFromCloud: () => void; // Add recovery function
+  testAutoSave: () => void; // Add test function
   updateShawarmas: (amount: number) => void;
   addClick: (amount: number) => void;
   addProduction: (amount: number) => void;
@@ -488,6 +490,24 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [gameLoading, setGameLoading] = useState(true);
   const [lastCloudSave, setLastCloudSave] = useState<number>(0);
   const [pendingChanges, setPendingChanges] = useState(false);
+
+  // Use refs to ensure we always have the latest values in the interval
+  const stateRef = React.useRef(state);
+  const pendingChangesRef = React.useRef(pendingChanges);
+  const lastCloudSaveRef = React.useRef(lastCloudSave);
+
+  // Update refs whenever values change
+  React.useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  React.useEffect(() => {
+    pendingChangesRef.current = pendingChanges;
+  }, [pendingChanges]);
+
+  React.useEffect(() => {
+    lastCloudSaveRef.current = lastCloudSave;
+  }, [lastCloudSave]);
 
   useEffect(() => {
     localStorage.removeItem("shawarma-game-state");
@@ -521,53 +541,114 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    console.log("State changed, setting pendingChanges to true");
     setPendingChanges(true);
   }, [state]);
 
   useEffect(() => {
     if (!user) return;
 
+    console.log("Setting up FIXED auto-save interval for user:", user?.email);
+
     const cloudSaveInterval = setInterval(async () => {
-      if (pendingChanges && Date.now() - lastCloudSave > 30000) {
-        try {
-          await CloudSaveService.saveToCloud(user, state);
-          setLastCloudSave(Date.now());
-          setPendingChanges(false);
-          console.log("Auto-saved to cloud");
-        } catch (error) {
-          console.error("Auto-save to cloud failed:", error);
+      const currentPendingChanges = pendingChangesRef.current;
+      const currentLastCloudSave = lastCloudSaveRef.current;
+      const currentState = stateRef.current;
+
+      console.log("Auto-save check running...", {
+        pendingChanges: currentPendingChanges,
+        timeSinceLastSave: Date.now() - currentLastCloudSave,
+        shouldSave:
+          currentPendingChanges && Date.now() - currentLastCloudSave > 30000,
+        currentShawarmas: currentState?.clicker?.shawarmas || 0,
+        hasValidState: !!(currentState && currentState.clicker),
+      });
+
+      if (currentPendingChanges && Date.now() - currentLastCloudSave > 30000) {
+        console.log("Triggering auto-save with direct state access...");
+
+        // DIRECTLY save using the current state from ref, not the closure
+        if (user && currentState && currentState.clicker) {
+          try {
+            console.log(
+              "Auto-save: Saving state with",
+              currentState.clicker.shawarmas,
+              "shawarmas"
+            );
+            await CloudSaveService.saveToCloud(user, currentState);
+            setLastCloudSave(Date.now());
+            setPendingChanges(false);
+            console.log("Auto-save successful with direct state access");
+
+            toaster.create({
+              title: "Auto-Saved",
+              description: "Game progress automatically saved to cloud",
+              type: "info",
+              duration: 2000,
+            });
+          } catch (error) {
+            console.error("Auto-save failed:", error);
+            toaster.create({
+              title: "Auto-Save Failed",
+              description: "Failed to auto-save to cloud",
+              type: "error",
+              duration: 3000,
+            });
+          }
+        } else {
+          console.error("Auto-save skipped: Invalid state or no user");
         }
       }
-    }, 60000);
+    }, 30000); // Auto-save check every 30 seconds
 
-    return () => clearInterval(cloudSaveInterval);
-  }, [user, state, pendingChanges, lastCloudSave]);
+    return () => {
+      console.log("Cleaning up auto-save interval");
+      clearInterval(cloudSaveInterval);
+    };
+  }, [user]); // Only depend on user, not state changes
 
-  const saveGame = async () => {
+  const saveGame = async (isAutoSave = false) => {
+    console.log(`saveGame called with isAutoSave: ${isAutoSave}`);
+
     if (user) {
       try {
         await CloudSaveService.saveToCloud(user, state);
         setLastCloudSave(Date.now());
         setPendingChanges(false);
-        console.log("Manual save to cloud successful");
 
-        toaster.create({
-          title: "Game Saved",
-          description: "Progress saved to cloud successfully!",
-          type: "success",
-          duration: 3000,
-        });
+        if (isAutoSave) {
+          console.log("Auto-save successful");
+          toaster.create({
+            title: "Auto-Saved",
+            description: "Game progress saved.",
+            type: "info",
+            duration: 2000,
+          });
+        } else {
+          console.log("Manual save to cloud successful");
+          toaster.create({
+            title: "Game Saved",
+            description: "Progress saved.",
+            type: "success",
+            duration: 3000,
+          });
+        }
       } catch (error) {
-        console.error("Manual save to cloud failed:", error);
+        console.error(
+          isAutoSave ? "Auto-save failed:" : "Manual save failed:",
+          error
+        );
 
         toaster.create({
-          title: "Save Failed",
-          description: "Failed to save to cloud. Please try again.",
+          title: isAutoSave ? "Auto-Save Failed" : "Save Failed",
+          description: isAutoSave
+            ? "Failed to auto-save to cloud"
+            : "Failed to save to cloud. Please try again.",
           type: "error",
           duration: 5000,
         });
       }
-    } else {
+    } else if (!isAutoSave) {
       toaster.create({
         title: "Sign In Required",
         description:
@@ -636,6 +717,79 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     return () => clearInterval(productionInterval);
   }, [state.clicker.shawarmasPerSecond]);
 
+  // EMERGENCY DATA RECOVERY FUNCTION
+  const recoverFromCloud = async () => {
+    if (!user) {
+      console.error("No user logged in for recovery");
+      return;
+    }
+
+    try {
+      console.log("Attempting to recover data from cloud...");
+      const cloudSave = await CloudSaveService.loadFromCloud(user);
+      if (cloudSave) {
+        dispatch({ type: "LOAD_GAME", payload: cloudSave });
+        console.log("Data recovered from cloud!");
+
+        toaster.create({
+          title: "Data Recovered",
+          description: "Your game data has been recovered from cloud save",
+          type: "success",
+          duration: 5000,
+        });
+      } else {
+        console.error("No cloud save found to recover from");
+        toaster.create({
+          title: "No Recovery Data",
+          description: "No cloud save found to recover from",
+          type: "error",
+          duration: 5000,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to recover data:", error);
+      toaster.create({
+        title: "Recovery Failed",
+        description: "Failed to recover data from cloud",
+        type: "error",
+        duration: 5000,
+      });
+    }
+  };
+
+  // SAFE AUTO-SAVE FUNCTION FOR TESTING
+  const testAutoSave = async () => {
+    const currentState = stateRef.current;
+    console.log("Testing auto-save with current state:", {
+      shawarmas: currentState?.clicker?.shawarmas,
+      hasState: !!currentState,
+      hasClicker: !!(currentState && currentState.clicker),
+    });
+
+    if (user && currentState && currentState.clicker) {
+      try {
+        await CloudSaveService.saveToCloud(user, currentState);
+        console.log("Test auto-save successful!");
+        toaster.create({
+          title: "Test Auto-Save Success",
+          description: `Saved ${currentState.clicker.shawarmas} shawarmas successfully`,
+          type: "success",
+          duration: 3000,
+        });
+      } catch (error) {
+        console.error("Test auto-save failed:", error);
+        toaster.create({
+          title: "Test Auto-Save Failed",
+          description: "Failed to save current state",
+          type: "error",
+          duration: 5000,
+        });
+      }
+    } else {
+      console.error("Cannot test auto-save: missing user or invalid state");
+    }
+  };
+
   const contextValue: GameContextType = {
     state,
     dispatch,
@@ -643,6 +797,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     authLoading,
     gameLoading,
     saveGame,
+    recoverFromCloud,
+    testAutoSave,
     updateShawarmas,
     addClick,
     addProduction,

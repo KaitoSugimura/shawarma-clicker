@@ -13,13 +13,39 @@ export class CloudSaveService {
   private static readonly COLLECTION_NAME = "shawarma_saves";
   private static readonly SAVE_VERSION = "2.0";
 
+  // Recursively remove undefined values from an object for Firestore compatibility
+  private static sanitizeForFirestore(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return null;
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.sanitizeForFirestore(item));
+    }
+
+    if (typeof obj === "object") {
+      const sanitized: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (value !== undefined) {
+          sanitized[key] = this.sanitizeForFirestore(value);
+        }
+      }
+      return sanitized;
+    }
+
+    return obj;
+  }
+
   static async saveToCloud(
     user: User,
     gameState: CombinedGameState
   ): Promise<void> {
     try {
+      // Sanitize the game state to remove undefined values
+      const sanitizedGameState = this.sanitizeForFirestore(gameState);
+
       const saveData: CloudSaveData = {
-        gameState,
+        gameState: sanitizedGameState,
         lastSaved: serverTimestamp(),
         version: this.SAVE_VERSION,
       };
