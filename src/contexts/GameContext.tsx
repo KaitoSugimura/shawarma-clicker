@@ -20,7 +20,6 @@ import {
   initialUpgrades,
   initialClickUpgrades,
 } from "../data/gameData";
-import { loadFromStorage } from "../utils/gameUtils";
 import { FOOD_ITEMS, TRADING_CONFIG } from "../data/tradingData";
 import { auth } from "../firebase/config";
 import { CloudSaveService } from "../services/CloudSaveService";
@@ -48,6 +47,7 @@ type GameAction =
   | { type: "UPDATE_SPS"; payload: number }
   | { type: "UPDATE_SPC"; payload: number }
   | { type: "ADD_CLICK"; payload: number }
+  | { type: "ADD_PRODUCTION"; payload: number }
   | { type: "BUY_UPGRADE"; payload: { upgradeId: string; cost: number } }
   | { type: "BUY_CLICK_UPGRADE"; payload: { upgradeId: string; cost: number } }
   | { type: "UPDATE_TRADING_STATE"; payload: Partial<TradingState> }
@@ -70,99 +70,22 @@ type GameAction =
 
 // Initial combined state
 const getInitialCombinedState = (): CombinedGameState => {
-  const clickerState = loadFromStorage("shawarma-game-state", initialGameState);
+  // Use clean initial states only - no localStorage loading
+  const upgrades = initialUpgrades.map((upgrade: Upgrade) => ({
+    ...upgrade,
+    owned: 0,
+  }));
 
-  // Load upgrades from localStorage or use initial upgrades
-  let upgrades: Upgrade[];
-  try {
-    const savedUpgrades = JSON.parse(
-      localStorage.getItem("shawarma-upgrades") || "[]"
-    );
+  const clickUpgrades = initialClickUpgrades.map((upgrade: ClickUpgrade) => ({
+    ...upgrade,
+    owned: false,
+  }));
 
-    if (Array.isArray(savedUpgrades) && savedUpgrades.length > 0) {
-      upgrades = savedUpgrades;
-    } else {
-      // Use initial upgrades if none saved
-      upgrades = initialUpgrades.map((upgrade: Upgrade) => ({
-        ...upgrade,
-        owned: 0,
-      }));
-    }
-  } catch {
-    // Use initial upgrades on error
-    upgrades = initialUpgrades.map((upgrade: Upgrade) => ({
-      ...upgrade,
-      owned: 0,
-    }));
-  }
-
-  // Load click upgrades with format validation
-  let clickUpgrades: ClickUpgrade[];
-  try {
-    const savedClickUpgrades = JSON.parse(
-      localStorage.getItem("shawarma-click-upgrades") || "[]"
-    );
-
-    // Validate the saved click upgrades format
-    if (Array.isArray(savedClickUpgrades) && savedClickUpgrades.length > 0) {
-      const hasValidFormat = savedClickUpgrades.every(
-        (upgrade: any) =>
-          upgrade &&
-          typeof upgrade.id === "string" &&
-          typeof upgrade.shawarmasPerClick === "number" &&
-          typeof upgrade.owned === "boolean"
-      );
-
-      if (hasValidFormat) {
-        clickUpgrades = savedClickUpgrades;
-      } else {
-        // Reset invalid format - use initial click upgrades
-        clickUpgrades = initialClickUpgrades.map((upgrade: ClickUpgrade) => ({
-          ...upgrade,
-          owned: false,
-        }));
-        localStorage.removeItem("shawarma-click-upgrades");
-      }
-    } else {
-      // Use initial click upgrades if none saved
-      clickUpgrades = initialClickUpgrades.map((upgrade: ClickUpgrade) => ({
-        ...upgrade,
-        owned: false,
-      }));
-    }
-  } catch {
-    // Reset on any parsing error - use initial click upgrades
-    clickUpgrades = initialClickUpgrades.map((upgrade: ClickUpgrade) => ({
-      ...upgrade,
-      owned: false,
-    }));
-    localStorage.removeItem("shawarma-click-upgrades");
-  }
-
-  const stats = JSON.parse(localStorage.getItem("shawarma-stats") || "{}");
-
-  // Load trading state
-  const savedTrading = localStorage.getItem("shawarma-trading");
-  let tradingState: TradingState;
-
-  if (savedTrading) {
-    try {
-      const parsed = JSON.parse(savedTrading);
-      // Ensure portfolioAverageCosts exists for backward compatibility
-      if (!parsed.portfolioAverageCosts) {
-        parsed.portfolioAverageCosts = {};
-      }
-      tradingState = parsed;
-    } catch {
-      tradingState = createInitialTradingState(clickerState.shawarmas);
-    }
-  } else {
-    tradingState = createInitialTradingState(clickerState.shawarmas);
-  }
+  const tradingState = createInitialTradingState(initialGameState.shawarmas);
 
   return {
     clicker: {
-      ...clickerState,
+      ...initialGameState,
       shawarmasPerSecond: calculateShawarmasPerSecond(upgrades),
       shawarmasPerClick: Math.max(1, calculateShawarmasPerClick(clickUpgrades)),
     },
@@ -182,7 +105,6 @@ const getInitialCombinedState = (): CombinedGameState => {
       quickestProfitableFlip: Infinity,
       playTime: 0,
       totalResets: 0,
-      ...stats,
     },
     trading: tradingState,
     version: "2.0",
@@ -309,6 +231,23 @@ const gameReducer = (
         },
         trading: { ...state.trading, shawarmaBalance: newShawarmas },
         stats: { ...state.stats, totalClicks: state.stats.totalClicks + 1 },
+      };
+
+    case "ADD_PRODUCTION":
+      const newShawarmasFromProduction =
+        state.clicker.shawarmas + action.payload;
+      return {
+        ...state,
+        clicker: {
+          ...state.clicker,
+          shawarmas: newShawarmasFromProduction,
+          totalShawarmasEarned:
+            state.clicker.totalShawarmasEarned + action.payload,
+        },
+        trading: {
+          ...state.trading,
+          shawarmaBalance: newShawarmasFromProduction,
+        },
       };
 
     case "BUY_UPGRADE":
@@ -501,9 +440,11 @@ interface GameContextType {
   dispatch: React.Dispatch<GameAction>;
   user: User | null;
   authLoading: boolean;
+  gameLoading: boolean;
   saveGame: () => void;
   updateShawarmas: (amount: number) => void;
   addClick: (amount: number) => void;
+  addProduction: (amount: number) => void;
   buyUpgrade: (upgradeId: string, cost: number) => void;
   buyClickUpgrade: (upgradeId: string, cost: number) => void;
   updateTradingState: (updates: Partial<TradingState>) => void;
@@ -530,8 +471,19 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, getInitialCombinedState());
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [gameLoading, setGameLoading] = useState(true);
   const [lastCloudSave, setLastCloudSave] = useState<number>(0);
   const [pendingChanges, setPendingChanges] = useState(false);
+
+  // Clear localStorage on component mount to prevent state conflicts
+  useEffect(() => {
+    // Clear any existing localStorage game data
+    localStorage.removeItem("shawarma-game-state");
+    localStorage.removeItem("shawarma-upgrades");
+    localStorage.removeItem("shawarma-click-upgrades");
+    localStorage.removeItem("shawarma-stats");
+    localStorage.removeItem("shawarma-trading");
+  }, []);
 
   // Authentication state listener
   useEffect(() => {
@@ -551,6 +503,9 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
           console.error("Failed to load cloud save:", error);
         }
       }
+
+      // Game is ready once auth is done (whether user is signed in or not)
+      setGameLoading(false);
     });
 
     return () => unsubscribe();
@@ -581,27 +536,6 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
     return () => clearInterval(cloudSaveInterval);
   }, [user, state, pendingChanges, lastCloudSave]);
-
-  // Fallback localStorage save for offline users (reduced frequency)
-  useEffect(() => {
-    if (user) return; // Skip localStorage if user is signed in
-
-    const localSaveInterval = setInterval(() => {
-      localStorage.setItem(
-        "shawarma-game-state",
-        JSON.stringify(state.clicker)
-      );
-      localStorage.setItem("shawarma-upgrades", JSON.stringify(state.upgrades));
-      localStorage.setItem(
-        "shawarma-click-upgrades",
-        JSON.stringify(state.clickUpgrades)
-      );
-      localStorage.setItem("shawarma-stats", JSON.stringify(state.stats));
-      localStorage.setItem("shawarma-trading", JSON.stringify(state.trading));
-    }, 30000); // Save every 30 seconds for offline users
-
-    return () => clearInterval(localSaveInterval);
-  }, [state, user]);
 
   // Manual save game to cloud (immediate)
   const saveGame = async () => {
@@ -635,7 +569,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       toaster.create({
         title: "Sign In Required",
         description:
-          "Please sign in with Google to save your progress to the cloud.",
+          "Your progress is only saved while playing. Sign in with Google for permanent cloud saves!",
         type: "error",
         duration: 5000,
       });
@@ -649,6 +583,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
   const addClick = (amount: number) => {
     dispatch({ type: "ADD_CLICK", payload: amount });
+  };
+
+  const addProduction = (amount: number) => {
+    dispatch({ type: "ADD_PRODUCTION", payload: amount });
   };
 
   const buyUpgrade = (upgradeId: string, cost: number) => {
@@ -689,9 +627,11 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     dispatch,
     user,
     authLoading,
+    gameLoading,
     saveGame,
     updateShawarmas,
     addClick,
+    addProduction,
     buyUpgrade,
     buyClickUpgrade,
     updateTradingState,

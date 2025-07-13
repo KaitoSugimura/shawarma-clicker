@@ -621,7 +621,7 @@ const allAchievements: Achievement[] = [
     description: "Unlock 50 achievements",
     icon: "🏆",
     category: "general",
-    requirement: (state) => {
+    requirement: () => {
       // This will be calculated dynamically
       return false; // Placeholder - will be calculated in component
     },
@@ -632,7 +632,7 @@ const allAchievements: Achievement[] = [
     description: "Unlock 25 achievements",
     icon: "🎯",
     category: "general",
-    requirement: (state) => {
+    requirement: () => {
       // This will be calculated dynamically
       return false; // Placeholder - will be calculated in component
     },
@@ -643,7 +643,7 @@ const allAchievements: Achievement[] = [
     description: "Unlock 75 achievements",
     icon: "👑",
     category: "general",
-    requirement: (state) => {
+    requirement: () => {
       // This will be calculated dynamically
       return false; // Placeholder - will be calculated in component
     },

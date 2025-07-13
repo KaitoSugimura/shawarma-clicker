@@ -14,10 +14,10 @@ function App() {
   const [activeTab, setActiveTab] = useState<"game" | "trade" | "achievements">(
     "game"
   );
-  const { state, user, authLoading, saveGame } = useGame();
+  const { state, user, authLoading, gameLoading, saveGame } = useGame();
 
-  // Show loading screen while Firebase is connecting
-  if (authLoading) {
+  // Show loading screen while Firebase is connecting or game data is loading
+  if (authLoading || gameLoading) {
     return (
       <Box
         w="100vw"

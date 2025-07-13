@@ -16,7 +16,14 @@ import {
 import { useGame } from "../contexts/GameContext";
 
 const ShawarmaClicker: React.FC = () => {
-  const { state, addClick, buyUpgrade, buyClickUpgrade, dispatch } = useGame();
+  const {
+    state,
+    addClick,
+    addProduction,
+    buyUpgrade,
+    buyClickUpgrade,
+    dispatch,
+  } = useGame();
   const {
     clicker: gameState,
     upgrades,
@@ -66,7 +73,7 @@ const ShawarmaClicker: React.FC = () => {
     const interval = setInterval(() => {
       const production = Math.floor(gameState.shawarmasPerSecond);
       if (production > 0) {
-        addClick(production); // Use addClick instead of updateShawarmas
+        addProduction(production); // Use addProduction for auto-generated shawarmas
 
         // Add production animation with enhanced cleanup
         const newAnimation = {

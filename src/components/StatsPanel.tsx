@@ -1,23 +1,14 @@
 import React from "react";
 import { Box, VStack, Text, Grid } from "@chakra-ui/react";
-import type { GameStats, GameState, Upgrade } from "../types/game";
+import type { GameStats, GameState } from "../types/game";
 import { formatNumber, formatTime } from "../utils/gameUtils";
 
 interface StatsProps {
   stats: GameStats;
   gameState: GameState;
-  upgrades: Upgrade[];
-  showAchievements: boolean;
-  onToggleAchievements: () => void;
 }
 
-const StatsPanel: React.FC<StatsProps> = ({
-  stats,
-  gameState,
-  upgrades,
-  showAchievements,
-  onToggleAchievements,
-}) => {
+const StatsPanel: React.FC<StatsProps> = ({ stats, gameState }) => {
   const playTime = Date.now() - stats.gameStartTime;
   const averageSPS =
     playTime > 0 ? gameState.totalShawarmasEarned / (playTime / 1000) : 0;
