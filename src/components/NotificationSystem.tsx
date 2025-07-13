@@ -45,7 +45,6 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
     onRemoveNotification(notification.id);
   }, [onRemoveNotification, notification.id]);
 
-  // Auto-remove after 3 seconds
   React.useEffect(() => {
     const timer = setTimeout(onRemove, 3000);
     return () => clearTimeout(timer);

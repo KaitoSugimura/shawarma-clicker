@@ -19,7 +19,6 @@ export const AuthComponent: React.FC<AuthProps> = ({ user, loading }) => {
       await signInWithPopup(auth, provider);
     } catch (error: any) {
       console.error("Error signing in:", error);
-      // More detailed error logging
       if (error.code === "auth/popup-closed-by-user") {
         console.log("User closed the popup");
       } else if (error.code === "auth/unauthorized-domain") {

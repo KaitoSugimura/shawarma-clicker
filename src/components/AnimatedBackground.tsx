@@ -2,7 +2,6 @@ import React, { useMemo } from "react";
 import { Box, Text } from "@chakra-ui/react";
 
 const AnimatedBackground: React.FC = () => {
-  // Generate static data that won't change on re-renders
   const rainingData = useMemo(() => {
     return Array.from({ length: 12 }, (_, i) => ({
       id: i,

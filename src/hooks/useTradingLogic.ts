@@ -44,7 +44,6 @@ export function useTradingLogic(): UseTradingLogicResult {
       ? clicker.shawarmas >= totalCost
       : (trading.portfolio[trading.selectedFood] || 0) >= tradeAmount;
 
-  // Price update effect
   useEffect(() => {
     const priceUpdateInterval = setInterval(() => {
       const newPrices = { ...trading.currentPrices };
@@ -58,7 +57,6 @@ export function useTradingLogic(): UseTradingLogicResult {
         const change = (Math.random() - 0.5) * 2 * volatility * currentPrice;
         const newPrice = Math.max(0.001, currentPrice + change);
 
-        // Only flash if price change is significant and enough time has passed
         const priceChangePercent =
           Math.abs((newPrice - currentPrice) / currentPrice) * 100;
         const lastFlash = lastFlashTime[food.id] || 0;
@@ -88,7 +86,6 @@ export function useTradingLogic(): UseTradingLogicResult {
     return () => clearInterval(priceUpdateInterval);
   }, [lastFlashTime, trading.currentPrices, updateTradingState]);
 
-  // Chart data update effect
   useEffect(() => {
     const candleInterval = setInterval(() => {
       const newChartData = { ...trading.chartData };
@@ -113,7 +110,6 @@ export function useTradingLogic(): UseTradingLogicResult {
           const timeDiff = Date.now() - lastCandle.timestamp;
 
           if (timeDiff >= TRADING_CONFIG.CANDLE_DURATION) {
-            // Create new candle
             newChartData[food.id] = [
               ...currentData.slice(-TRADING_CONFIG.MAX_CANDLES + 1),
               {
@@ -126,7 +122,6 @@ export function useTradingLogic(): UseTradingLogicResult {
               },
             ];
           } else {
-            // Update current candle
             const updatedCandle = {
               ...lastCandle,
               high: Math.max(lastCandle.high, currentPrice),
@@ -167,7 +162,6 @@ export function useTradingLogic(): UseTradingLogicResult {
       Date.now()
     );
 
-    // Reset trade amount to 1 after trade
     setTradeAmount(1);
   }, [
     canExecuteTrade,

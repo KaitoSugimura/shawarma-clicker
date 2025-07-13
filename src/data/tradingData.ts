@@ -80,7 +80,6 @@ export const TRADING_CONFIG = {
   PRICE_UPDATE_INTERVAL: 300, // Update prices every 300ms for more dynamic movement
   MAX_CANDLES: 60, // Keep last 60 candles
   VOLATILITY_MULTIPLIER: 0.15, // Higher volatility for more excitement
-  // Volatility period settings
   VOLATILITY_PERIOD_MIN: 5 * 60 * 1000, // 5 minutes minimum
   VOLATILITY_PERIOD_MAX: 10 * 60 * 1000, // 10 minutes maximum
   VOLATILITY_PERIOD_DURATION: 2 * 60 * 1000, // 2 minutes of high volatility

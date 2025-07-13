@@ -13,7 +13,6 @@ export class CloudSaveService {
   private static readonly COLLECTION_NAME = "shawarma_saves";
   private static readonly SAVE_VERSION = "2.0";
 
-  // Save game state to Firestore
   static async saveToCloud(
     user: User,
     gameState: CombinedGameState
@@ -33,7 +32,6 @@ export class CloudSaveService {
     }
   }
 
-  // Load game state from Firestore
   static async loadFromCloud(user: User): Promise<CombinedGameState | null> {
     try {
       const docRef = doc(db, this.COLLECTION_NAME, user.uid);
@@ -53,7 +51,6 @@ export class CloudSaveService {
     }
   }
 
-  // Check if cloud save exists
   static async hasCloudSave(user: User): Promise<boolean> {
     try {
       const docRef = doc(db, this.COLLECTION_NAME, user.uid);

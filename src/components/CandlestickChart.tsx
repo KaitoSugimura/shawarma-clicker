@@ -23,7 +23,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     ...data.map((d) => Math.min(d.high, d.low, d.open, d.close)),
     currentPrice
   );
-  // Add 10% padding to the price range to ensure candles are never cut off
   const rawPriceRange = maxPrice - minPrice || 1;
   const priceRange = rawPriceRange * 1.2; // 20% padding (10% top + 10% bottom)
   const paddedMaxPrice = maxPrice + rawPriceRange * 0.1;
@@ -74,7 +73,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
 
           {/* Candlestick data */}
           {data.slice(-30).map((candle, index) => {
-            // Show only last 30 candles for better visibility
             const chartWidth = 95; // Leave 5% margin
             const totalCandles = Math.min(data.length, 30);
             const candleWidth = Math.max(chartWidth / totalCandles - 1, 1.5); // At least 1.5% width with 1% gap

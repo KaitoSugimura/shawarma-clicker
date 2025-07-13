@@ -23,7 +23,6 @@ export function useSpecialEvents(
   const [goldenShawarma, setGoldenShawarma] =
     useState<GoldenShawarmaState | null>(null);
 
-  // Golden Shawarma spawning logic
   useEffect(() => {
     const spawnGoldenShawarma = () => {
       if (goldenShawarma?.visible) return;
@@ -45,7 +44,6 @@ export function useSpecialEvents(
     return () => clearInterval(interval);
   }, [goldenShawarma]);
 
-  // Golden Shawarma countdown timer
   useEffect(() => {
     if (!goldenShawarma?.visible) return;
 
@@ -63,7 +61,6 @@ export function useSpecialEvents(
     return () => clearInterval(interval);
   }, [goldenShawarma]);
 
-  // Random events spawning
   useEffect(() => {
     const triggerRandomEvent = () => {
       const events: Omit<SpecialEvent, "id" | "startTime">[] = [
@@ -102,7 +99,6 @@ export function useSpecialEvents(
     return () => clearInterval(interval);
   }, [onEventTrigger, gameState.totalShawarmasEarned]);
 
-  // Handle golden shawarma click
   const handleGoldenShawarmaClick = useCallback(() => {
     if (!goldenShawarma?.visible) return;
 
@@ -111,7 +107,6 @@ export function useSpecialEvents(
       gameState.shawarmasPerSecond * 30 + gameState.shawarmasPerClick * 100
     );
 
-    // Actually add the bonus shawarmas to the player's balance
     updateShawarmas(gameState.shawarmas + bonus);
 
     const goldenEvent: SpecialEvent = {

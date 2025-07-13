@@ -110,7 +110,6 @@ export interface MarketSummaryProps {
   profitLoss: number;
 }
 
-// Stats and special events interfaces
 export interface StatItemProps {
   label: string;
   value: string;

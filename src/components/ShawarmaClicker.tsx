@@ -51,7 +51,6 @@ function ShawarmaClicker() {
       clickMultiplier,
     });
 
-  // Production animation effect
   useEffect(() => {
     if (gameState.shawarmasPerSecond <= 0) return;
 
@@ -65,7 +64,6 @@ function ShawarmaClicker() {
     return () => clearInterval(interval);
   }, [gameState.shawarmasPerSecond, addProductionAnimation]);
 
-  // Special event trigger callback
   const triggerEvent = useCallback(
     (event: SpecialEvent) => {
       setActiveEvents((prev) => [...prev, event]);
@@ -78,7 +76,6 @@ function ShawarmaClicker() {
         duration: event.duration,
       });
 
-      // Remove event after duration
       setTimeout(() => {
         setActiveEvents((prev) => prev.filter((e) => e.id !== event.id));
         setClickMultiplier(1);

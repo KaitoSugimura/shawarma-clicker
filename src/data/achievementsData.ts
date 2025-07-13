@@ -1,7 +1,6 @@
 import type { Achievement } from "../components/shared/interfaces";
 
 export const achievements: Achievement[] = [
-  // === CLICKER ACHIEVEMENTS - BASIC ===
   {
     id: "first-click",
     name: "First Bite",
@@ -51,7 +50,6 @@ export const achievements: Achievement[] = [
     requirement: (state) => state.stats.totalClicks >= 100000,
   },
 
-  // === CLICKER ACHIEVEMENTS - SHAWARMA MILESTONES ===
   {
     id: "ten-shawarmas",
     name: "First Dozen",
@@ -117,7 +115,6 @@ export const achievements: Achievement[] = [
     requirement: (state) => state.clicker.totalShawarmasEarned >= 100000000,
   },
 
-  // === CLICKER ACHIEVEMENTS - UPGRADES ===
   {
     id: "first-upgrade",
     name: "First Investment",
@@ -167,7 +164,6 @@ export const achievements: Achievement[] = [
     requirement: (state) => state.stats.totalUpgradesPurchased >= 100,
   },
 
-  // === CLICKER ACHIEVEMENTS - CLICK UPGRADES ===
   {
     id: "first-click-upgrade",
     name: "Better Clicking",
@@ -217,7 +213,6 @@ export const achievements: Achievement[] = [
     requirement: (state) => state.clicker.shawarmasPerClick >= 250,
   },
 
-  // === CLICKER ACHIEVEMENTS - PRODUCTION ===
   {
     id: "auto-production",
     name: "Passive Income",
@@ -259,7 +254,6 @@ export const achievements: Achievement[] = [
     requirement: (state) => state.clicker.shawarmasPerSecond >= 10000,
   },
 
-  // === TRADING ACHIEVEMENTS - BASIC ===
   {
     id: "first-trade",
     name: "Market Debut",
@@ -317,7 +311,6 @@ export const achievements: Achievement[] = [
     requirement: (state) => state.stats.totalTrades >= 1000,
   },
 
-  // === TRADING ACHIEVEMENTS - PROFIT ===
   {
     id: "first-profit",
     name: "Profit Maker",
@@ -367,7 +360,6 @@ export const achievements: Achievement[] = [
     requirement: (state) => state.stats.totalProfit >= 1000000,
   },
 
-  // === TRADING ACHIEVEMENTS - PORTFOLIO ===
   {
     id: "first-food",
     name: "Food Collector",
@@ -455,7 +447,6 @@ export const achievements: Achievement[] = [
     },
   },
 
-  // === TRADING ACHIEVEMENTS - STRATEGY ===
   {
     id: "market-timing",
     name: "Perfect Timing",
@@ -489,7 +480,6 @@ export const achievements: Achievement[] = [
     requirement: (state) => state.stats.quickestProfitableFlip <= 10,
   },
 
-  // === GENERAL ACHIEVEMENTS - TIME ===
   {
     id: "early-adopter",
     name: "Early Adopter",
@@ -531,7 +521,6 @@ export const achievements: Achievement[] = [
     requirement: (state) => state.stats.playTime >= 86400,
   },
 
-  // === GENERAL ACHIEVEMENTS - SPECIAL ===
   {
     id: "reset-courage",
     name: "Fresh Start",

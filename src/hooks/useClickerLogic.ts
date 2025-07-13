@@ -33,7 +33,6 @@ export function useClickerLogic({
 
   const handleShawarmaClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      // Throttle rapid clicking to prevent performance issues
       const now = Date.now();
       if (now - lastClickTime < CLICK_THROTTLE_MS) {
         return;
@@ -51,7 +50,6 @@ export function useClickerLogic({
       addClick(shawarmasGained);
       addClickAnimation(x, y, shawarmasGained);
 
-      // Update stats
       const newTotalClicks = gameStats.totalClicks + 1;
       const newClickRate = Math.max(gameStats.bestClickRate, shawarmasGained);
 
@@ -63,7 +61,6 @@ export function useClickerLogic({
         },
       });
 
-      // Check for click milestones
       const totalClicks = newTotalClicks;
       MILESTONES.clicks.forEach((milestone) => {
         if (totalClicks === milestone.threshold) {
@@ -76,7 +73,6 @@ export function useClickerLogic({
         }
       });
 
-      // Check for shawarma milestones
       const newTotal = gameState.shawarmas + shawarmasGained;
       MILESTONES.shawarmas.forEach((milestone) => {
         if (
@@ -119,7 +115,6 @@ export function useClickerLogic({
           duration: 3000,
         });
 
-        // Achievement check for first upgrade
         if (state.upgrades.every((u) => u.owned === 0)) {
           const achievement = achievements.find(
             (a) => a.id === "first-upgrade"
@@ -150,7 +145,6 @@ export function useClickerLogic({
           duration: 3000,
         });
 
-        // Achievement check for first click upgrade
         if (state.clickUpgrades.every((u) => !u.owned)) {
           const achievement = achievements.find(
             (a) => a.id === "first-click-upgrade"

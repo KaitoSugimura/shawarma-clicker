@@ -39,7 +39,6 @@ const TradingPanel: React.FC = () => {
   const currentPrice = trading.currentPrices[trading.selectedFood];
 
   useEffect(() => {
-    // Auto-save is handled by the context
   }, []);
 
   useEffect(() => {
@@ -49,15 +48,12 @@ const TradingPanel: React.FC = () => {
       const currentTime = Date.now();
       let newVolatilityPeriods = { ...trading.volatilityPeriods };
 
-      // Check for volatility period triggers every 5-10 minutes
       if (
         currentTime - trading.lastVolatilityCheck >
         TRADING_CONFIG.VOLATILITY_PERIOD_MIN
       ) {
-        // Randomly select a food for volatility period
         const randomChance = Math.random();
         if (randomChance < 0.1) {
-          // 10% chance each check
           const availableFoods = FOOD_ITEMS.filter(
             (food) => !trading.volatilityPeriods[food.id]?.active
           );
@@ -70,7 +66,6 @@ const TradingPanel: React.FC = () => {
               multiplier: TRADING_CONFIG.VOLATILITY_PERIOD_MULTIPLIER,
             };
 
-            // Show notification for volatility period
             toaster.create({
               title: "🌪️ VOLATILITY ALERT!",
               description: `${selectedFood.name} (${selectedFood.symbol}) is experiencing extreme volatility! Prices are moving rapidly!`,
@@ -80,11 +75,9 @@ const TradingPanel: React.FC = () => {
           }
         }
 
-        // Update lastVolatilityCheck
         updateTradingState({ lastVolatilityCheck: currentTime });
       }
 
-      // Update volatility periods and remove expired ones
       Object.keys(newVolatilityPeriods).forEach((foodId) => {
         if (
           newVolatilityPeriods[foodId].active &&
@@ -101,7 +94,6 @@ const TradingPanel: React.FC = () => {
       FOOD_ITEMS.forEach((food) => {
         const currentPrice = newPrices[food.id];
 
-        // Calculate volatility with potential volatility period multiplier
         const volatilityPeriod = newVolatilityPeriods[food.id];
         const baseVolatility =
           food.volatility * TRADING_CONFIG.VOLATILITY_MULTIPLIER;
@@ -112,7 +104,6 @@ const TradingPanel: React.FC = () => {
         const change = (Math.random() - 0.5) * 2 * volatility * currentPrice;
         const newPrice = Math.max(0.001, currentPrice + change);
 
-        // Only flash if price change is significant (> 1%) and enough time has passed (> 1 second)
         const priceChangePercent =
           Math.abs((newPrice - currentPrice) / currentPrice) * 100;
         const lastFlash = lastFlashTime[food.id] || 0;
@@ -212,7 +203,6 @@ const TradingPanel: React.FC = () => {
 
   const handleTrade = () => {
     if (tradeType === "buy") {
-      // When buying, tradeAmount represents SHW to spend
       const shawarmaToSpend = tradeAmount;
       const foodUnitsToReceive = shawarmaToSpend / currentPrice;
 
@@ -220,7 +210,6 @@ const TradingPanel: React.FC = () => {
         return;
       }
 
-      // Use the context executeTrade function which handles everything
       contextExecuteTrade(
         "buy",
         trading.selectedFood,
@@ -229,7 +218,6 @@ const TradingPanel: React.FC = () => {
         shawarmaToSpend
       );
     } else {
-      // When selling, tradeAmount represents food units to sell
       const foodUnitsToSell = tradeAmount;
       const shawarmaToReceive = foodUnitsToSell * currentPrice;
       const owned = trading.portfolio[trading.selectedFood] || 0;
@@ -238,7 +226,6 @@ const TradingPanel: React.FC = () => {
         return;
       }
 
-      // Use the context executeTrade function which handles everything
       contextExecuteTrade(
         "sell",
         trading.selectedFood,

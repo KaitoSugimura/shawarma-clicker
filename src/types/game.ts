@@ -49,14 +49,12 @@ export interface GameStats {
   bestClickRate: number;
   totalUpgradesPurchased: number;
   totalClickUpgradesPurchased: number;
-  // Trading stats
   totalTrades: number;
   totalProfit: number;
   bestTradeProfit: number;
   tradesInSession: number;
   longestHoldTime: number; // in seconds
   quickestProfitableFlip: number; // in seconds
-  // General stats
   playTime: number; // in seconds
   totalResets: number;
 }

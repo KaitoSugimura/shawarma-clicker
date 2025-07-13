@@ -16,7 +16,6 @@ function App() {
   );
   const { state, user, authLoading, gameLoading, saveGame } = useGame();
 
-  // Show loading screen while Firebase is connecting or game data is loading
   if (authLoading || gameLoading) {
     return (
       <Box

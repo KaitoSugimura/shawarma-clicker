@@ -36,7 +36,6 @@ export function useClickerAnimations(): UseClickerAnimationsResult {
       return newNotifications;
     });
 
-    // Auto remove notification after duration
     setTimeout(() => {
       removeNotification(notification.id);
     }, notification.duration || 3000);
@@ -67,7 +66,6 @@ export function useClickerAnimations(): UseClickerAnimationsResult {
           : updated;
       });
 
-      // Cleanup animation
       setTimeout(() => {
         setClickAnimations((prev) =>
           prev.filter((anim) => anim.id !== newAnimation.id)
@@ -99,7 +97,6 @@ export function useClickerAnimations(): UseClickerAnimationsResult {
           : updated;
       });
 
-      // Cleanup animation
       setTimeout(() => {
         setProductionAnimations((prev) =>
           prev.filter((anim) => anim.id !== newAnimation.id)
@@ -108,7 +105,6 @@ export function useClickerAnimations(): UseClickerAnimationsResult {
     }
   }, []);
 
-  // Cleanup old animations periodically
   useEffect(() => {
     const cleanupInterval = setInterval(() => {
       const now = Date.now();

@@ -15,7 +15,6 @@ export const initialGameState: GameState = {
 };
 
 export const initialUpgrades: Upgrade[] = [
-  // Early game - Basic automation
   {
     id: "cursor",
     name: "Auto Flipper",
@@ -61,7 +60,6 @@ export const initialUpgrades: Upgrade[] = [
     icon: "🏪",
   },
 
-  // Mid game - Industrial scale
   {
     id: "factory",
     name: "Shawarma Factory",
@@ -96,7 +94,6 @@ export const initialUpgrades: Upgrade[] = [
     icon: "🏢",
   },
 
-  // Late game - Advanced technology
   {
     id: "ai_chef",
     name: "AI Chef Network",
@@ -131,7 +128,6 @@ export const initialUpgrades: Upgrade[] = [
     icon: "🌀",
   },
 
-  // End game - Cosmic scale
   {
     id: "time_machine",
     name: "Time Machine",
@@ -157,7 +153,6 @@ export const initialUpgrades: Upgrade[] = [
 ];
 
 export const initialClickUpgrades: ClickUpgrade[] = [
-  // Early game - Basic improvements
   {
     id: "better_grip",
     name: "Better Grip",
@@ -199,7 +194,6 @@ export const initialClickUpgrades: ClickUpgrade[] = [
     icon: "�‍🍳",
   },
 
-  // Mid game - Advanced techniques
   {
     id: "master_chef",
     name: "Master Chef",
@@ -241,7 +235,6 @@ export const initialClickUpgrades: ClickUpgrade[] = [
     icon: "✨",
   },
 
-  // Late game - Supernatural powers
   {
     id: "cosmic_mastery",
     name: "Cosmic Mastery",
@@ -283,7 +276,6 @@ export const initialClickUpgrades: ClickUpgrade[] = [
     icon: "👑",
   },
 
-  // End game - Universe-breaking powers
   {
     id: "multiverse_master",
     name: "Multiverse Master",

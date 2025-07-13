@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 
-// Hook for persisting game state to localStorage
 export function useLocalStorage<T>(key: string, initialValue: T) {
-  // Get value from localStorage or use initial value
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
@@ -13,7 +11,6 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     }
   });
 
-  // Update localStorage when state changes
   const setValue = (value: T | ((val: T) => T)) => {
     try {
       const valueToStore =
@@ -28,7 +25,6 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   return [storedValue, setValue] as const;
 }
 
-// Auto-save game state every few seconds
 export function useAutoSave<T>(
   key: string,
   value: T,

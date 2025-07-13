@@ -4,7 +4,6 @@ import type { Achievement } from "../components/shared/interfaces";
 export function useAchievementLogic(state: any) {
   const isUnlocked = (achievement: Achievement): boolean => {
     try {
-      // Handle dynamic achievements that depend on other achievements being unlocked
       if (
         achievement.id === "achievement-hunter" ||
         achievement.id === "completionist" ||
