@@ -8,6 +8,7 @@ import {
   Box,
   Portal,
 } from "@chakra-ui/react";
+import { Avatar } from "@chakra-ui/react";
 import {
   PopoverRoot,
   PopoverTrigger,
@@ -84,7 +85,15 @@ export const AuthDropdown: React.FC<AuthDropdownProps> = ({
         >
           {user ? (
             <HStack gap={2}>
-              <Icon as={FaUser} color="green.500" />
+              <Avatar.Root size="sm">
+                <Avatar.Image 
+                  src={user.photoURL || undefined} 
+                  alt={user.displayName || user.email || "User"}
+                />
+                <Avatar.Fallback>
+                  {(user.displayName || user.email || "U").charAt(0).toUpperCase()}
+                </Avatar.Fallback>
+              </Avatar.Root>
               <Text fontSize="sm" maxW="100px" truncate>
                 {user.displayName || user.email}
               </Text>
@@ -119,14 +128,25 @@ export const AuthDropdown: React.FC<AuthDropdownProps> = ({
               <VStack gap={0} align="stretch">
                 {/* User Info Header */}
                 <Box p={3} bg="gray.50" borderTopRadius="md">
-                  <VStack align="start" gap={1} w="full">
-                    <Text fontWeight="bold" fontSize="sm" color="gray.800">
-                      {user.displayName || "User"}
-                    </Text>
-                    <Text fontSize="xs" color="gray.500">
-                      {user.email}
-                    </Text>
-                  </VStack>
+                  <HStack align="center" gap={3} w="full">
+                    <Avatar.Root size="md">
+                      <Avatar.Image 
+                        src={user.photoURL || undefined} 
+                        alt={user.displayName || user.email || "User"}
+                      />
+                      <Avatar.Fallback>
+                        {(user.displayName || user.email || "U").charAt(0).toUpperCase()}
+                      </Avatar.Fallback>
+                    </Avatar.Root>
+                    <VStack align="start" gap={1} flex={1}>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.800">
+                        {user.displayName || "User"}
+                      </Text>
+                      <Text fontSize="xs" color="gray.500">
+                        {user.email}
+                      </Text>
+                    </VStack>
+                  </HStack>
                 </Box>
 
                 <Box h="1px" bg="gray.200" />
