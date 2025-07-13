@@ -86,12 +86,14 @@ export const AuthDropdown: React.FC<AuthDropdownProps> = ({
           {user ? (
             <HStack gap={2}>
               <Avatar.Root size="sm">
-                <Avatar.Image 
-                  src={user.photoURL || undefined} 
+                <Avatar.Image
+                  src={user.photoURL || undefined}
                   alt={user.displayName || user.email || "User"}
                 />
                 <Avatar.Fallback>
-                  {(user.displayName || user.email || "U").charAt(0).toUpperCase()}
+                  {(user.displayName || user.email || "U")
+                    .charAt(0)
+                    .toUpperCase()}
                 </Avatar.Fallback>
               </Avatar.Root>
               <Text fontSize="sm" maxW="100px" truncate>
@@ -130,12 +132,14 @@ export const AuthDropdown: React.FC<AuthDropdownProps> = ({
                 <Box p={3} bg="gray.50" borderTopRadius="md">
                   <HStack align="center" gap={3} w="full">
                     <Avatar.Root size="md">
-                      <Avatar.Image 
-                        src={user.photoURL || undefined} 
+                      <Avatar.Image
+                        src={user.photoURL || undefined}
                         alt={user.displayName || user.email || "User"}
                       />
                       <Avatar.Fallback>
-                        {(user.displayName || user.email || "U").charAt(0).toUpperCase()}
+                        {(user.displayName || user.email || "U")
+                          .charAt(0)
+                          .toUpperCase()}
                       </Avatar.Fallback>
                     </Avatar.Root>
                     <VStack align="start" gap={1} flex={1}>
