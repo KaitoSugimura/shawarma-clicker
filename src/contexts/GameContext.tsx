@@ -170,6 +170,9 @@ const generateFakeHistoricalData = (food: any, candles: number = 60): any[] => {
 const createInitialTradingState = (shawarmaBalance: number): TradingState => {
   const initialPrices: { [key: string]: number } = {};
   const initialChartData: { [key: string]: any[] } = {};
+  const initialVolatilityPeriods: {
+    [key: string]: { active: boolean; endTime: number; multiplier: number };
+  } = {};
 
   FOOD_ITEMS.forEach((food: any) => {
     // Set current price to the last price from historical data
@@ -181,6 +184,11 @@ const createInitialTradingState = (shawarmaBalance: number): TradingState => {
 
     initialPrices[food.id] = lastCandle.close;
     initialChartData[food.id] = historicalData;
+    initialVolatilityPeriods[food.id] = {
+      active: false,
+      endTime: 0,
+      multiplier: 1,
+    };
   });
 
   return {
@@ -191,6 +199,8 @@ const createInitialTradingState = (shawarmaBalance: number): TradingState => {
     chartData: initialChartData,
     selectedFood: FOOD_ITEMS[0].id,
     shawarmaBalance,
+    volatilityPeriods: initialVolatilityPeriods,
+    lastVolatilityCheck: Date.now(),
   };
 };
 
@@ -635,6 +645,20 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const selectFood = (foodId: string) => {
     dispatch({ type: "SELECT_FOOD", payload: foodId });
   };
+
+  // Passive production system - generates shawarmas automatically
+  useEffect(() => {
+    if (state.clicker.shawarmasPerSecond <= 0) return;
+
+    const productionInterval = setInterval(() => {
+      const production = state.clicker.shawarmasPerSecond;
+      if (production > 0) {
+        addProduction(production);
+      }
+    }, 1000); // Add production every second
+
+    return () => clearInterval(productionInterval);
+  }, [state.clicker.shawarmasPerSecond]);
 
   const contextValue: GameContextType = {
     state,

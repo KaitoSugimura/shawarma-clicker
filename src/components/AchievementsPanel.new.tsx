@@ -6,7 +6,7 @@ import { AchievementProgressBar } from "./shared/AchievementProgressBar";
 import { CategoryFilter } from "./shared/CategoryFilter";
 import { AchievementGrid } from "./shared/AchievementGrid";
 
-export function AchievementsPanel() {
+export default function AchievementsPanel() {
   const { state } = useGame();
   const [selectedCategory, setSelectedCategory] = useState<
     "all" | "clicker" | "trading" | "general"

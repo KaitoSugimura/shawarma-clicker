@@ -9,7 +9,6 @@ import {
   Badge,
   Input,
 } from "@chakra-ui/react";
-import { toaster } from "../components/ui/toaster";
 import CandlestickChart from "./CandlestickChart";
 import type { TradingData } from "../types/trading";
 import { FOOD_ITEMS, TRADING_CONFIG } from "../data/tradingData";
@@ -47,68 +46,11 @@ const TradingPanel: React.FC = () => {
       const newPrices = { ...trading.currentPrices };
       const newFlash: { [key: string]: "up" | "down" | null } = {};
       const currentTime = Date.now();
-      let newVolatilityPeriods = { ...trading.volatilityPeriods };
-
-      // Check for volatility period triggers every 5-10 minutes
-      if (
-        currentTime - trading.lastVolatilityCheck >
-        TRADING_CONFIG.VOLATILITY_PERIOD_MIN
-      ) {
-        // Randomly select a food for volatility period
-        const randomChance = Math.random();
-        if (randomChance < 0.1) {
-          // 10% chance each check
-          const availableFoods = FOOD_ITEMS.filter(
-            (food) => !trading.volatilityPeriods[food.id]?.active
-          );
-          if (availableFoods.length > 0) {
-            const selectedFood =
-              availableFoods[Math.floor(Math.random() * availableFoods.length)];
-            newVolatilityPeriods[selectedFood.id] = {
-              active: true,
-              endTime: currentTime + TRADING_CONFIG.VOLATILITY_PERIOD_DURATION,
-              multiplier: TRADING_CONFIG.VOLATILITY_PERIOD_MULTIPLIER,
-            };
-
-            // Show notification for volatility period
-            toaster.create({
-              title: "🌪️ VOLATILITY ALERT!",
-              description: `${selectedFood.name} (${selectedFood.symbol}) is experiencing extreme volatility! Prices are moving rapidly!`,
-              type: "warning",
-              duration: 5000,
-            });
-          }
-        }
-
-        // Update lastVolatilityCheck
-        updateTradingState({ lastVolatilityCheck: currentTime });
-      }
-
-      // Update volatility periods and remove expired ones
-      Object.keys(newVolatilityPeriods).forEach((foodId) => {
-        if (
-          newVolatilityPeriods[foodId].active &&
-          currentTime > newVolatilityPeriods[foodId].endTime
-        ) {
-          newVolatilityPeriods[foodId] = {
-            active: false,
-            endTime: 0,
-            multiplier: 1,
-          };
-        }
-      });
 
       FOOD_ITEMS.forEach((food) => {
         const currentPrice = newPrices[food.id];
-
-        // Calculate volatility with potential volatility period multiplier
-        const volatilityPeriod = newVolatilityPeriods[food.id];
-        const baseVolatility =
+        const volatility =
           food.volatility * TRADING_CONFIG.VOLATILITY_MULTIPLIER;
-        const volatility = volatilityPeriod?.active
-          ? baseVolatility * volatilityPeriod.multiplier
-          : baseVolatility;
-
         const change = (Math.random() - 0.5) * 2 * volatility * currentPrice;
         const newPrice = Math.max(0.001, currentPrice + change);
 
@@ -136,18 +78,11 @@ const TradingPanel: React.FC = () => {
 
       updateTradingState({
         currentPrices: newPrices,
-        volatilityPeriods: newVolatilityPeriods,
       });
     }, TRADING_CONFIG.PRICE_UPDATE_INTERVAL);
 
     return () => clearInterval(priceUpdateInterval);
-  }, [
-    lastFlashTime,
-    trading.currentPrices,
-    trading.volatilityPeriods,
-    trading.lastVolatilityCheck,
-    updateTradingState,
-  ]);
+  }, [lastFlashTime, trading.currentPrices, updateTradingState]);
 
   useEffect(() => {
     const candleInterval = setInterval(() => {
@@ -324,60 +259,6 @@ const TradingPanel: React.FC = () => {
           </VStack>
         </HStack>
 
-        {/* Volatility Alert Panel */}
-        {Object.values(trading.volatilityPeriods).some(
-          (period) => period.active
-        ) && (
-          <Box
-            bg="rgba(128, 0, 128, 0.1)"
-            borderWidth="1px"
-            borderColor="purple.400"
-            borderRadius="lg"
-            p={3}
-            mb={2}
-          >
-            <HStack justify="space-between" align="center">
-              <HStack gap={2}>
-                <Text fontSize="sm" color="purple.300" fontWeight="bold">
-                  ⚡ ACTIVE VOLATILITY PERIODS
-                </Text>
-                <Badge colorScheme="purple" variant="solid">
-                  {
-                    Object.values(trading.volatilityPeriods).filter(
-                      (period) => period.active
-                    ).length
-                  }{" "}
-                  Active
-                </Badge>
-              </HStack>
-              <HStack gap={3}>
-                {FOOD_ITEMS.filter(
-                  (food) => trading.volatilityPeriods[food.id]?.active
-                ).map((food) => {
-                  const period = trading.volatilityPeriods[food.id];
-                  const timeLeft = Math.max(0, period.endTime - Date.now());
-                  const secondsLeft = Math.ceil(timeLeft / 1000);
-                  return (
-                    <HStack key={food.id} gap={1}>
-                      <Text fontSize="sm">{food.icon}</Text>
-                      <Text
-                        fontSize="xs"
-                        color="purple.300"
-                        fontWeight="medium"
-                      >
-                        {food.symbol}
-                      </Text>
-                      <Text fontSize="xs" color="gray.400">
-                        {secondsLeft}s
-                      </Text>
-                    </HStack>
-                  );
-                })}
-              </HStack>
-            </HStack>
-          </Box>
-        )}
-
         <Grid
           templateColumns={{ base: "1fr", xl: "2fr 340px" }}
           templateRows={{ base: "auto auto", xl: "1fr" }}
@@ -400,8 +281,6 @@ const TradingPanel: React.FC = () => {
                 const owned = trading.portfolio[food.id] || 0;
                 const isSelected = food.id === trading.selectedFood;
                 const flash = priceFlash[food.id];
-                const volatilityPeriod = trading.volatilityPeriods[food.id];
-                const isVolatile = volatilityPeriod?.active || false;
 
                 return (
                   <Button
@@ -417,8 +296,6 @@ const TradingPanel: React.FC = () => {
                     bg={
                       isSelected
                         ? "orange.500"
-                        : isVolatile
-                        ? "rgba(255, 0, 255, 0.3)" // Purple glow for volatility
                         : flash === "up"
                         ? "rgba(72, 187, 120, 0.3)"
                         : flash === "down"
@@ -430,8 +307,6 @@ const TradingPanel: React.FC = () => {
                       transform: "scale(1.05) rotate(1deg)",
                       bg: isSelected
                         ? "orange.400"
-                        : isVolatile
-                        ? "rgba(255, 0, 255, 0.4)"
                         : flash === "up"
                         ? "rgba(72, 187, 120, 0.4)"
                         : flash === "down"
@@ -441,23 +316,10 @@ const TradingPanel: React.FC = () => {
                     }}
                     _active={{ transform: "scale(0.95)" }}
                     borderWidth={isSelected ? "3px" : "2px"}
-                    borderColor={
-                      isSelected
-                        ? "orange.300"
-                        : isVolatile
-                        ? "purple.400"
-                        : undefined
-                    }
+                    borderColor={isSelected ? "orange.300" : undefined}
                     position="relative"
                     boxShadow={
-                      isSelected
-                        ? "0 0 15px rgba(255, 165, 0, 0.3)"
-                        : isVolatile
-                        ? "0 0 15px rgba(255, 0, 255, 0.5)"
-                        : undefined
-                    }
-                    animation={
-                      isVolatile ? "pulse 1.5s ease-in-out infinite" : undefined
+                      isSelected ? "0 0 15px rgba(255, 165, 0, 0.3)" : undefined
                     }
                   >
                     <VStack gap={0} align="center" justify="center" h="full">
@@ -471,19 +333,12 @@ const TradingPanel: React.FC = () => {
                         <Text fontSize="xs" fontWeight="bold">
                           {food.symbol}
                         </Text>
-                        {isVolatile && (
-                          <Text fontSize="xs" color="purple.300">
-                            ⚡
-                          </Text>
-                        )}
                       </HStack>
                       <Text
                         fontSize="xs"
                         fontWeight="bold"
                         color={
-                          isVolatile
-                            ? "purple.300"
-                            : flash === "up"
+                          flash === "up"
                             ? "green.300"
                             : flash === "down"
                             ? "red.300"
@@ -491,17 +346,7 @@ const TradingPanel: React.FC = () => {
                         }
                       >
                         {price.toFixed(4)}
-                        {isVolatile && (
-                          <Text
-                            as="span"
-                            color="purple.400"
-                            ml={1}
-                            fontSize="xs"
-                          >
-                            ⚡
-                          </Text>
-                        )}
-                        {flash === "up" && !isVolatile && (
+                        {flash === "up" && (
                           <Text
                             as="span"
                             color="green.400"
@@ -511,7 +356,7 @@ const TradingPanel: React.FC = () => {
                             ↗
                           </Text>
                         )}
-                        {flash === "down" && !isVolatile && (
+                        {flash === "down" && (
                           <Text as="span" color="red.400" ml={1} fontSize="xs">
                             ↘
                           </Text>

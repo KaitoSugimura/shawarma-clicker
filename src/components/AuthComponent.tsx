@@ -13,9 +13,22 @@ export const AuthComponent: React.FC<AuthProps> = ({ user, loading }) => {
   const signInWithGoogle = async () => {
     try {
       const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: "select_account",
+      });
       await signInWithPopup(auth, provider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error signing in:", error);
+      // More detailed error logging
+      if (error.code === "auth/popup-closed-by-user") {
+        console.log("User closed the popup");
+      } else if (error.code === "auth/unauthorized-domain") {
+        console.error("Domain not authorized in Firebase console");
+        alert("This domain is not authorized. Please contact the developer.");
+      } else {
+        console.error("Sign-in error code:", error.code);
+        console.error("Sign-in error message:", error.message);
+      }
     }
   };
 

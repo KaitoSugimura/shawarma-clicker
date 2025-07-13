@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./App.css";
 import ShawarmaClicker from "./components/ShawarmaClicker";
 import TradingPanel from "./components/TradingPanel";
-import AchievementsPanel from "./components/AchievementsPanel";
+import { AchievementsPanel } from "./components/AchievementsPanel";
 import { AuthDropdown } from "./components/AuthDropdown";
 import { Toaster } from "./components/ui/toaster";
 import { Box, VStack, HStack, Button, Text, Spinner } from "@chakra-ui/react";
@@ -113,7 +113,11 @@ function App() {
 
             <Box>
               <Text color="orange.300" fontSize="lg" fontWeight="bold">
-                💰 {formatNumber(state.clicker.shawarmas)} SHW
+                💰{" "}
+                {state.clicker.shawarmas >= 1
+                  ? formatNumber(state.clicker.shawarmas)
+                  : state.clicker.shawarmas.toFixed(2)}{" "}
+                SHW
               </Text>
             </Box>
           </HStack>
