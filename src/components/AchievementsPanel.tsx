@@ -351,7 +351,7 @@ const allAchievements: Achievement[] = [
   {
     id: "hundred-profit",
     name: "Growing Wealth",
-    description: "Earn 100 SHW profit from trading",
+    description: "Earn 100 shawarma profit from trading",
     icon: "💰",
     category: "trading",
     requirement: (state) => state.stats.totalProfit >= 100,
@@ -359,7 +359,7 @@ const allAchievements: Achievement[] = [
   {
     id: "thousand-profit",
     name: "Market Genius",
-    description: "Earn 1,000 SHW profit from trading",
+    description: "Earn 1,000 shawarma profit from trading",
     icon: "🧠",
     category: "trading",
     requirement: (state) => state.stats.totalProfit >= 1000,
@@ -367,7 +367,7 @@ const allAchievements: Achievement[] = [
   {
     id: "ten-thousand-profit",
     name: "Trading Tycoon",
-    description: "Earn 10,000 SHW profit from trading",
+    description: "Earn 10,000 shawarma profit from trading",
     icon: "💎",
     category: "trading",
     requirement: (state) => state.stats.totalProfit >= 10000,
@@ -375,7 +375,7 @@ const allAchievements: Achievement[] = [
   {
     id: "hundred-thousand-profit",
     name: "Wall Street Wolf",
-    description: "Earn 100,000 SHW profit from trading",
+    description: "Earn 100,000 shawarma profit from trading",
     icon: "🐺",
     category: "trading",
     requirement: (state) => state.stats.totalProfit >= 100000,
@@ -383,7 +383,7 @@ const allAchievements: Achievement[] = [
   {
     id: "million-profit",
     name: "Trading Legend",
-    description: "Earn 1 million SHW profit from trading",
+    description: "Earn 1 million shawarma profit from trading",
     icon: "👑",
     category: "trading",
     requirement: (state) => state.stats.totalProfit >= 1000000,
@@ -597,7 +597,8 @@ const allAchievements: Achievement[] = [
   {
     id: "efficiency-expert",
     name: "Efficiency Expert",
-    description: "Maintain 1000+ SPS while having 100+ SPC",
+    description:
+      "Maintain 1000+ shawarmas per second while having 100+ shawarmas per click",
     icon: "⚡",
     category: "general",
     requirement: (state) => {

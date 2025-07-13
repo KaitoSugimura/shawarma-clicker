@@ -66,43 +66,70 @@ const ShawarmaClicker: React.FC = () => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
-  // Auto-production effect
+  // Auto-production effect with enhanced visual feedback
   useEffect(() => {
-    if (gameState.shawarmasPerSecond <= 0) return;
+    console.log(
+      "Auto-production effect triggered. shawarmasPerSecond:",
+      gameState.shawarmasPerSecond
+    );
+
+    if (gameState.shawarmasPerSecond <= 0) {
+      console.log(
+        "No production - shawarmasPerSecond is",
+        gameState.shawarmasPerSecond
+      );
+      return;
+    }
+
+    console.log(
+      "Starting auto-production interval with",
+      gameState.shawarmasPerSecond,
+      "per second"
+    );
 
     const interval = setInterval(() => {
       const production = Math.floor(gameState.shawarmasPerSecond);
+      console.log("Production tick:", production);
       if (production > 0) {
         addProduction(production); // Use addProduction for auto-generated shawarmas
 
-        // Add production animation with enhanced cleanup
-        const newAnimation = {
-          id: Date.now() + Math.random(),
-          x: 40 + Math.random() * 20, // Centered around the shawarma
-          y: 40 + Math.random() * 20, // Centered around the shawarma
-          amount: production,
-          timestamp: Date.now(),
-        };
+        // Add multiple production animations for better visibility
+        const animationCount = Math.min(
+          3,
+          Math.max(1, Math.floor(production / 10))
+        );
 
-        setProductionAnimations((prev) => {
-          const updated = [...prev, newAnimation];
-          // More aggressive cleanup to prevent accumulation
-          return updated.length > MAX_PRODUCTION_ANIMATIONS
-            ? updated.slice(-MAX_PRODUCTION_ANIMATIONS)
-            : updated;
-        });
+        for (let i = 0; i < animationCount; i++) {
+          setTimeout(() => {
+            const newAnimation = {
+              id: Date.now() + Math.random() + i,
+              x: 30 + Math.random() * 40, // Wider spread around the shawarma
+              y: 30 + Math.random() * 40, // Wider spread around the shawarma
+              amount: Math.floor(production / animationCount),
+              timestamp: Date.now(),
+            };
 
-        // Clean up animation with shorter duration for performance
-        setTimeout(() => {
-          setProductionAnimations((prev) =>
-            prev.filter((anim) => anim.id !== newAnimation.id)
-          );
-        }, ANIMATION_CLEANUP_DELAY);
+            setProductionAnimations((prev) => {
+              const updated = [...prev, newAnimation];
+              // More aggressive cleanup to prevent accumulation
+              return updated.length > MAX_PRODUCTION_ANIMATIONS
+                ? updated.slice(-MAX_PRODUCTION_ANIMATIONS)
+                : updated;
+            });
+
+            // Clean up animation with shorter duration for performance
+            setTimeout(() => {
+              setProductionAnimations((prev) =>
+                prev.filter((anim) => anim.id !== newAnimation.id)
+              );
+            }, ANIMATION_CLEANUP_DELAY);
+          }, i * 150); // Stagger animations for better visual effect
+        }
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [gameState.shawarmasPerSecond, addClick]);
+  }, [gameState.shawarmasPerSecond, addProduction]);
 
   // Enhanced cleanup effect to prevent memory leaks
   useEffect(() => {
@@ -480,21 +507,26 @@ const ShawarmaClicker: React.FC = () => {
                   +{gameState.shawarmasPerClick * clickMultiplier}
                 </Box>
               ))}
-              {/* Production Animation Overlay */}
+              {/* Production Animation Overlay - Enhanced */}
               {productionAnimations.map((animation) => (
                 <Box
                   key={animation.id}
                   position="absolute"
                   left={`${animation.x}%`}
                   top={`${animation.y}%`}
-                  fontSize="xl"
-                  fontWeight="semibold"
-                  color="cyan.300"
+                  fontSize="2xl"
+                  fontWeight="bold"
+                  color="green.300"
                   pointerEvents="none"
                   transform="translate(-50%, -50%)"
-                  animation="productionFloat 1s ease-out forwards"
+                  animation="productionFloat 2s ease-out forwards"
                   zIndex="15"
-                  textShadow="0 0 8px rgba(34, 211, 238, 0.8)"
+                  textShadow="0 0 15px rgba(72, 187, 120, 0.9)"
+                  _before={{
+                    content: '"⚡"',
+                    mr: 1,
+                    fontSize: "lg",
+                  }}
                 >
                   +{animation.amount}
                 </Box>
@@ -610,7 +642,7 @@ const ShawarmaClicker: React.FC = () => {
             </Text>
             <HStack justify="space-between">
               <Text fontSize={{ base: "xs", md: "xs" }} color="gray.400">
-                SPS
+                Per Second
               </Text>
               <Text
                 fontSize={{ base: "xs", md: "xs" }}
@@ -622,7 +654,7 @@ const ShawarmaClicker: React.FC = () => {
             </HStack>
             <HStack justify="space-between">
               <Text fontSize={{ base: "xs", md: "xs" }} color="gray.400">
-                SPC
+                Per Click
               </Text>
               <Text
                 fontSize={{ base: "xs", md: "xs" }}
@@ -937,7 +969,7 @@ const ShawarmaClicker: React.FC = () => {
                   </VStack>
                   <VStack align="start" gap={1}>
                     <Text fontSize="xs" color="gray.400">
-                      Current SPS
+                      Shawarmas Per Second
                     </Text>
                     <Text fontSize="sm" fontWeight="bold" color="cyan.300">
                       {formatPerSecond(gameState.shawarmasPerSecond)}/sec
@@ -945,7 +977,7 @@ const ShawarmaClicker: React.FC = () => {
                   </VStack>
                   <VStack align="start" gap={1}>
                     <Text fontSize="xs" color="gray.400">
-                      Current SPC
+                      Shawarmas Per Click
                     </Text>
                     <Text fontSize="sm" fontWeight="bold" color="cyan.300">
                       {formatNumber(gameState.shawarmasPerClick)}/click
@@ -1072,15 +1104,15 @@ const ShawarmaClicker: React.FC = () => {
             }
             20% {
               opacity: 1;
-              transform: translate(-50%, -50%) scale(1.2) translateY(-5px);
+              transform: translate(-50%, -50%) scale(1.3) translateY(-8px);
             }
             50% {
               opacity: 0.8;
-              transform: translate(-50%, -50%) scale(1.1) translateY(-15px);
+              transform: translate(-50%, -50%) scale(1.2) translateY(-20px);
             }
             100% {
               opacity: 0;
-              transform: translate(-50%, -50%) scale(0.9) translateY(-35px);
+              transform: translate(-50%, -50%) scale(1.0) translateY(-40px);
             }
           }
 

@@ -424,8 +424,22 @@ const gameReducer = (
       };
 
     case "LOAD_GAME":
+      const loadedState = action.payload;
+      // Recalculate derived values to ensure consistency
+      const recalculatedShawarmasPerSecond = calculateShawarmasPerSecond(
+        loadedState.upgrades
+      );
+      const recalculatedShawarmasPerClick = calculateShawarmasPerClick(
+        loadedState.clickUpgrades
+      );
+
       return {
-        ...action.payload,
+        ...loadedState,
+        clicker: {
+          ...loadedState.clicker,
+          shawarmasPerSecond: recalculatedShawarmasPerSecond,
+          shawarmasPerClick: recalculatedShawarmasPerClick,
+        },
         lastSaved: Date.now(),
       };
 
