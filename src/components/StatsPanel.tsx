@@ -90,7 +90,7 @@ const StatsPanel: React.FC<StatsProps> = ({
                 Achievements
               </Text>
               <Text fontSize="lg" fontWeight="semibold" color="blue.300">
-                {gameState.achievements.length}/7
+                {gameState.achievements.length}/42
               </Text>
             </Box>
           </VStack>
@@ -106,7 +106,7 @@ const StatsPanel: React.FC<StatsProps> = ({
         >
           <Text fontSize="sm" color="blue.400" textAlign="center">
             🏆 Achievement Progress:{" "}
-            {Math.round((gameState.achievements.length / 7) * 100)}%
+            {Math.round((gameState.achievements.length / 42) * 100)}%
           </Text>
         </Box>
       </Box>

@@ -1,5 +1,13 @@
-import React, { createContext, useContext, useReducer, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
+import type { User } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import type {
   GameState,
   Upgrade,
@@ -7,12 +15,19 @@ import type {
   GameStats,
 } from "../types/game";
 import type { TradingState } from "../types/trading";
-import { initialGameState } from "../data/gameData";
+import {
+  initialGameState,
+  initialUpgrades,
+  initialClickUpgrades,
+} from "../data/gameData";
 import { loadFromStorage } from "../utils/gameUtils";
-import { FOOD_ITEMS } from "../data/tradingData";
+import { FOOD_ITEMS, TRADING_CONFIG } from "../data/tradingData";
+import { auth } from "../firebase/config";
+import { CloudSaveService } from "../services/CloudSaveService";
+import { toaster } from "../components/ui/toaster";
 
 // Combined game state that includes both clicker and trading
-interface CombinedGameState {
+export interface CombinedGameState {
   // Clicker game state
   clicker: GameState;
   upgrades: Upgrade[];
@@ -48,6 +63,7 @@ type GameAction =
     }
   | { type: "UPDATE_PRICES"; payload: { [key: string]: number } }
   | { type: "SELECT_FOOD"; payload: string }
+  | { type: "UNLOCK_ACHIEVEMENT"; payload: string }
   | { type: "RESET_GAME" }
   | { type: "LOAD_GAME"; payload: CombinedGameState }
   | { type: "UPDATE_STATS"; payload: Partial<GameStats> };
@@ -55,12 +71,74 @@ type GameAction =
 // Initial combined state
 const getInitialCombinedState = (): CombinedGameState => {
   const clickerState = loadFromStorage("shawarma-game-state", initialGameState);
-  const upgrades = JSON.parse(
-    localStorage.getItem("shawarma-upgrades") || "[]"
-  );
-  const clickUpgrades = JSON.parse(
-    localStorage.getItem("shawarma-click-upgrades") || "[]"
-  );
+
+  // Load upgrades from localStorage or use initial upgrades
+  let upgrades: Upgrade[];
+  try {
+    const savedUpgrades = JSON.parse(
+      localStorage.getItem("shawarma-upgrades") || "[]"
+    );
+
+    if (Array.isArray(savedUpgrades) && savedUpgrades.length > 0) {
+      upgrades = savedUpgrades;
+    } else {
+      // Use initial upgrades if none saved
+      upgrades = initialUpgrades.map((upgrade: Upgrade) => ({
+        ...upgrade,
+        owned: 0,
+      }));
+    }
+  } catch {
+    // Use initial upgrades on error
+    upgrades = initialUpgrades.map((upgrade: Upgrade) => ({
+      ...upgrade,
+      owned: 0,
+    }));
+  }
+
+  // Load click upgrades with format validation
+  let clickUpgrades: ClickUpgrade[];
+  try {
+    const savedClickUpgrades = JSON.parse(
+      localStorage.getItem("shawarma-click-upgrades") || "[]"
+    );
+
+    // Validate the saved click upgrades format
+    if (Array.isArray(savedClickUpgrades) && savedClickUpgrades.length > 0) {
+      const hasValidFormat = savedClickUpgrades.every(
+        (upgrade: any) =>
+          upgrade &&
+          typeof upgrade.id === "string" &&
+          typeof upgrade.shawarmasPerClick === "number" &&
+          typeof upgrade.owned === "boolean"
+      );
+
+      if (hasValidFormat) {
+        clickUpgrades = savedClickUpgrades;
+      } else {
+        // Reset invalid format - use initial click upgrades
+        clickUpgrades = initialClickUpgrades.map((upgrade: ClickUpgrade) => ({
+          ...upgrade,
+          owned: false,
+        }));
+        localStorage.removeItem("shawarma-click-upgrades");
+      }
+    } else {
+      // Use initial click upgrades if none saved
+      clickUpgrades = initialClickUpgrades.map((upgrade: ClickUpgrade) => ({
+        ...upgrade,
+        owned: false,
+      }));
+    }
+  } catch {
+    // Reset on any parsing error - use initial click upgrades
+    clickUpgrades = initialClickUpgrades.map((upgrade: ClickUpgrade) => ({
+      ...upgrade,
+      owned: false,
+    }));
+    localStorage.removeItem("shawarma-click-upgrades");
+  }
+
   const stats = JSON.parse(localStorage.getItem("shawarma-stats") || "{}");
 
   // Load trading state
@@ -83,7 +161,11 @@ const getInitialCombinedState = (): CombinedGameState => {
   }
 
   return {
-    clicker: clickerState,
+    clicker: {
+      ...clickerState,
+      shawarmasPerSecond: calculateShawarmasPerSecond(upgrades),
+      shawarmasPerClick: Math.max(1, calculateShawarmasPerClick(clickUpgrades)),
+    },
     upgrades,
     clickUpgrades,
     stats: {
@@ -91,6 +173,15 @@ const getInitialCombinedState = (): CombinedGameState => {
       gameStartTime: Date.now(),
       bestClickRate: 0,
       totalUpgradesPurchased: 0,
+      totalClickUpgradesPurchased: 0,
+      totalTrades: 0,
+      totalProfit: 0,
+      bestTradeProfit: 0,
+      tradesInSession: 0,
+      longestHoldTime: 0,
+      quickestProfitableFlip: Infinity,
+      playTime: 0,
+      totalResets: 0,
       ...stats,
     },
     trading: tradingState,
@@ -99,14 +190,75 @@ const getInitialCombinedState = (): CombinedGameState => {
   };
 };
 
+// Helper function to calculate total shawarmas per second from upgrades
+const calculateShawarmasPerSecond = (upgrades: Upgrade[]): number => {
+  return upgrades.reduce((total, upgrade) => {
+    return total + upgrade.shawarmasPerSecond * upgrade.owned;
+  }, 0);
+};
+
+// Helper function to calculate total shawarmas per click from click upgrades
+const calculateShawarmasPerClick = (clickUpgrades: ClickUpgrade[]): number => {
+  const calculated = clickUpgrades.reduce((total, upgrade) => {
+    return total + (upgrade.owned ? upgrade.shawarmasPerClick : 0);
+  }, 1); // Base click value is 1
+
+  // Ensure we never return 0 or invalid values
+  return Math.max(1, calculated || 1);
+};
+
+// Helper function to generate fake historical chart data
+const generateFakeHistoricalData = (food: any, candles: number = 60): any[] => {
+  const history = [];
+  const now = Date.now();
+  const candleDuration = TRADING_CONFIG.CANDLE_DURATION;
+
+  let currentPrice = food.basePrice;
+
+  for (let i = candles - 1; i >= 0; i--) {
+    const timestamp = now - i * candleDuration;
+
+    // Generate realistic price movement
+    const volatilityFactor = food.volatility * 0.05; // Smaller movements for history
+    const priceChange =
+      (Math.random() - 0.5) * 2 * volatilityFactor * currentPrice;
+
+    const open = currentPrice;
+    currentPrice = Math.max(0.001, currentPrice + priceChange);
+
+    // Generate high/low within reasonable bounds
+    const volatilityRange = volatilityFactor * currentPrice * 0.5;
+    const high = Math.max(open, currentPrice) + Math.random() * volatilityRange;
+    const low = Math.min(open, currentPrice) - Math.random() * volatilityRange;
+
+    history.push({
+      timestamp,
+      open,
+      high: Math.max(high, Math.max(open, currentPrice)),
+      low: Math.max(0.001, Math.min(low, Math.min(open, currentPrice))),
+      close: currentPrice,
+      volume: Math.floor(Math.random() * 1000) + 100,
+    });
+  }
+
+  return history;
+};
+
 // Helper function to create initial trading state
 const createInitialTradingState = (shawarmaBalance: number): TradingState => {
   const initialPrices: { [key: string]: number } = {};
   const initialChartData: { [key: string]: any[] } = {};
 
   FOOD_ITEMS.forEach((food: any) => {
-    initialPrices[food.id] = food.basePrice;
-    initialChartData[food.id] = [];
+    // Set current price to the last price from historical data
+    const historicalData = generateFakeHistoricalData(
+      food,
+      TRADING_CONFIG.MAX_CANDLES
+    );
+    const lastCandle = historicalData[historicalData.length - 1];
+
+    initialPrices[food.id] = lastCandle.close;
+    initialChartData[food.id] = historicalData;
   });
 
   return {
@@ -171,10 +323,16 @@ const gameReducer = (
       );
       const newShawarmasAfterUpgrade =
         state.clicker.shawarmas - action.payload.cost;
+      const newShawarmasPerSecond =
+        calculateShawarmasPerSecond(updatedUpgrades);
 
       return {
         ...state,
-        clicker: { ...state.clicker, shawarmas: newShawarmasAfterUpgrade },
+        clicker: {
+          ...state.clicker,
+          shawarmas: newShawarmasAfterUpgrade,
+          shawarmasPerSecond: newShawarmasPerSecond,
+        },
         trading: {
           ...state.trading,
           shawarmaBalance: newShawarmasAfterUpgrade,
@@ -194,10 +352,16 @@ const gameReducer = (
       );
       const newShawarmasAfterClickUpgrade =
         state.clicker.shawarmas - action.payload.cost;
+      const newShawarmasPerClick =
+        calculateShawarmasPerClick(updatedClickUpgrades);
 
       return {
         ...state,
-        clicker: { ...state.clicker, shawarmas: newShawarmasAfterClickUpgrade },
+        clicker: {
+          ...state.clicker,
+          shawarmas: newShawarmasAfterClickUpgrade,
+          shawarmasPerClick: newShawarmasPerClick,
+        },
         trading: {
           ...state.trading,
           shawarmaBalance: newShawarmasAfterClickUpgrade,
@@ -205,7 +369,8 @@ const gameReducer = (
         clickUpgrades: updatedClickUpgrades,
         stats: {
           ...state.stats,
-          totalUpgradesPurchased: state.stats.totalUpgradesPurchased + 1,
+          totalClickUpgradesPurchased:
+            state.stats.totalClickUpgradesPurchased + 1,
         },
       };
 
@@ -224,6 +389,13 @@ const gameReducer = (
 
       const newPortfolio = { ...state.trading.portfolio };
       const newAverageCosts = { ...state.trading.portfolioAverageCosts };
+
+      // Calculate profit for sell trades
+      let tradeProfit = 0;
+      if (tradeType === "sell") {
+        const avgCost = newAverageCosts[foodId] || 0;
+        tradeProfit = (price - avgCost) * amount;
+      }
 
       if (tradeType === "buy") {
         const currentAmount = newPortfolio[foodId] || 0;
@@ -253,9 +425,18 @@ const gameReducer = (
         total: cost,
       };
 
+      // Update trading stats
+      const newStats = {
+        ...state.stats,
+        totalTrades: state.stats.totalTrades + 1,
+        totalProfit: state.stats.totalProfit + tradeProfit,
+        bestTradeProfit: Math.max(state.stats.bestTradeProfit, tradeProfit),
+      };
+
       return {
         ...state,
         clicker: { ...state.clicker, shawarmas: tradeShawarmas },
+        stats: newStats,
         trading: {
           ...state.trading,
           shawarmaBalance: tradeShawarmas,
@@ -283,6 +464,15 @@ const gameReducer = (
         stats: { ...state.stats, ...action.payload },
       };
 
+    case "UNLOCK_ACHIEVEMENT":
+      return {
+        ...state,
+        clicker: {
+          ...state.clicker,
+          achievements: [...state.clicker.achievements, action.payload],
+        },
+      };
+
     case "RESET_GAME":
       const resetState = getInitialCombinedState();
       return {
@@ -290,6 +480,7 @@ const gameReducer = (
         stats: {
           ...resetState.stats,
           gameStartTime: Date.now(),
+          totalResets: state.stats.totalResets + 1,
         },
       };
 
@@ -308,9 +499,9 @@ const gameReducer = (
 interface GameContextType {
   state: CombinedGameState;
   dispatch: React.Dispatch<GameAction>;
+  user: User | null;
+  authLoading: boolean;
   saveGame: () => void;
-  loadGame: (file: File) => Promise<void>;
-  resetGame: () => void;
   updateShawarmas: (amount: number) => void;
   addClick: (amount: number) => void;
   buyUpgrade: (upgradeId: string, cost: number) => void;
@@ -337,10 +528,65 @@ interface GameProviderProps {
 
 export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, getInitialCombinedState());
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [lastCloudSave, setLastCloudSave] = useState<number>(0);
+  const [pendingChanges, setPendingChanges] = useState(false);
 
-  // Auto-save every 10 seconds
+  // Authentication state listener
   useEffect(() => {
-    const autoSaveInterval = setInterval(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setUser(user);
+      setAuthLoading(false);
+
+      if (user) {
+        // Try to load cloud save when user signs in
+        try {
+          const cloudSave = await CloudSaveService.loadFromCloud(user);
+          if (cloudSave) {
+            dispatch({ type: "LOAD_GAME", payload: cloudSave });
+            console.log("Loaded game from cloud");
+          }
+        } catch (error) {
+          console.error("Failed to load cloud save:", error);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Track changes to trigger cloud saves
+  useEffect(() => {
+    setPendingChanges(true);
+  }, [state]);
+
+  // Optimized cloud auto-save (every 60 seconds, only if changes and user is signed in)
+  useEffect(() => {
+    if (!user) return;
+
+    const cloudSaveInterval = setInterval(async () => {
+      if (pendingChanges && Date.now() - lastCloudSave > 30000) {
+        // 30 second minimum between saves
+        try {
+          await CloudSaveService.saveToCloud(user, state);
+          setLastCloudSave(Date.now());
+          setPendingChanges(false);
+          console.log("Auto-saved to cloud");
+        } catch (error) {
+          console.error("Auto-save to cloud failed:", error);
+        }
+      }
+    }, 60000); // Check every 60 seconds
+
+    return () => clearInterval(cloudSaveInterval);
+  }, [user, state, pendingChanges, lastCloudSave]);
+
+  // Fallback localStorage save for offline users (reduced frequency)
+  useEffect(() => {
+    if (user) return; // Skip localStorage if user is signed in
+
+    const localSaveInterval = setInterval(() => {
       localStorage.setItem(
         "shawarma-game-state",
         JSON.stringify(state.clicker)
@@ -352,73 +598,47 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       );
       localStorage.setItem("shawarma-stats", JSON.stringify(state.stats));
       localStorage.setItem("shawarma-trading", JSON.stringify(state.trading));
-    }, 10000);
+    }, 30000); // Save every 30 seconds for offline users
 
-    return () => clearInterval(autoSaveInterval);
-  }, [state]);
+    return () => clearInterval(localSaveInterval);
+  }, [state, user]);
 
-  // Save game to file
-  const saveGame = () => {
-    try {
-      const saveData = {
-        ...state,
-        savedAt: new Date().toISOString(),
-      };
+  // Manual save game to cloud (immediate)
+  const saveGame = async () => {
+    if (user) {
+      try {
+        await CloudSaveService.saveToCloud(user, state);
+        setLastCloudSave(Date.now());
+        setPendingChanges(false);
+        console.log("Manual save to cloud successful");
 
-      const blob = new Blob([JSON.stringify(saveData, null, 2)], {
-        type: "application/json",
+        // Show success notification
+        toaster.create({
+          title: "Game Saved",
+          description: "Progress saved to cloud successfully!",
+          type: "success",
+          duration: 3000,
+        });
+      } catch (error) {
+        console.error("Manual save to cloud failed:", error);
+
+        // Show error notification
+        toaster.create({
+          title: "Save Failed",
+          description: "Failed to save to cloud. Please try again.",
+          type: "error",
+          duration: 5000,
+        });
+      }
+    } else {
+      // Show notification for non-authenticated users
+      toaster.create({
+        title: "Sign In Required",
+        description:
+          "Please sign in with Google to save your progress to the cloud.",
+        type: "error",
+        duration: 5000,
       });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `shawarma-complete-save-${
-        new Date().toISOString().split("T")[0]
-      }.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error saving game:", error);
-    }
-  };
-
-  // Load game from file
-  const loadGame = async (file: File): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const saveData = JSON.parse(e.target?.result as string);
-
-          // Validate save data structure
-          if (saveData.clicker && saveData.trading && saveData.upgrades) {
-            dispatch({ type: "LOAD_GAME", payload: saveData });
-            resolve();
-          } else {
-            reject(new Error("Invalid save file format!"));
-          }
-        } catch (error) {
-          reject(error);
-        }
-      };
-      reader.readAsText(file);
-    });
-  };
-
-  // Reset game
-  const resetGame = () => {
-    if (
-      confirm(
-        "Are you sure you want to reset your entire game? This cannot be undone!"
-      )
-    ) {
-      localStorage.removeItem("shawarma-game-state");
-      localStorage.removeItem("shawarma-upgrades");
-      localStorage.removeItem("shawarma-click-upgrades");
-      localStorage.removeItem("shawarma-stats");
-      localStorage.removeItem("shawarma-trading");
-      dispatch({ type: "RESET_GAME" });
     }
   };
 
@@ -467,9 +687,9 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const contextValue: GameContextType = {
     state,
     dispatch,
+    user,
+    authLoading,
     saveGame,
-    loadGame,
-    resetGame,
     updateShawarmas,
     addClick,
     buyUpgrade,

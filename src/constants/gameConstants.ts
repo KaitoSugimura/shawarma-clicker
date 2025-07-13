@@ -19,7 +19,7 @@ export const SPECIAL_EVENTS = {
   RANDOM_EVENT_CHANCE: 0.05,
 } as const;
 
-export const ACHIEVEMENT_TOTAL = 27;
+export const ACHIEVEMENT_TOTAL = 42;
 
 export const MILESTONES = {
   clicks: [
@@ -42,6 +42,6 @@ export const MILESTONES = {
 
 export const NOTIFICATION_AUTO_CLOSE_DELAY = 3000;
 
-export const ANIMATION_CLEANUP_DELAY = 2000;
-export const MAX_CLICK_ANIMATIONS = 5;
-export const MAX_PRODUCTION_ANIMATIONS = 3;
+export const ANIMATION_CLEANUP_DELAY = 600; // Reduced for better performance
+export const MAX_CLICK_ANIMATIONS = 8; // Increased slightly for better visual feedback
+export const MAX_PRODUCTION_ANIMATIONS = 5; // Increased for better visual feedback

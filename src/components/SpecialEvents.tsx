@@ -150,17 +150,17 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
                 bg={
                   event.type === "frenzy"
                     ? "linear-gradient(135deg, rgba(251, 211, 141, 0.15), rgba(237, 137, 54, 0.15))"
-                    : "linear-gradient(135deg, rgba(196, 181, 253, 0.15), rgba(124, 58, 237, 0.15))"
+                    : "linear-gradient(135deg, rgba(255, 165, 0, 0.15), rgba(255, 140, 0, 0.15))"
                 }
-                borderWidth="2px"
+                borderWidth={event.type === "frenzy" ? "2px" : "0px"}
                 borderColor={
-                  event.type === "frenzy" ? "orange.400" : "purple.400"
+                  event.type === "frenzy" ? "orange.400" : "transparent"
                 }
                 borderRadius="xl"
                 boxShadow={
                   event.type === "frenzy"
                     ? "0 8px 32px rgba(251, 211, 141, 0.3)"
-                    : "0 8px 32px rgba(196, 181, 253, 0.3)"
+                    : "0 8px 32px rgba(255, 165, 0, 0.3)"
                 }
                 backdropFilter="blur(10px)"
                 animation={
@@ -174,14 +174,14 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
                     fontSize="md"
                     fontWeight="bold"
                     color={
-                      event.type === "frenzy" ? "orange.300" : "purple.300"
+                      event.type === "frenzy" ? "orange.300" : "orange.200"
                     }
                     textAlign="center"
                     textShadow="0 2px 4px rgba(0, 0, 0, 0.8)"
                   >
                     {event.type === "frenzy"
                       ? "🔥 CLICK FRENZY!"
-                      : "✨ LUCKY BONUS!"}
+                      : "🥙 LUCKY BONUS!"}
                   </Text>
                   <Text
                     fontSize="sm"
@@ -234,13 +234,17 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
           }}
           _focus={{ boxShadow: "none" }}
           transition="all 0.2s"
-          bg="rgba(255, 215, 0, 0.1)"
-          border="2px solid"
-          borderColor="yellow.400"
+          bg="transparent"
+          border="none"
+          boxShadow="none"
         >
           <VStack gap={1}>
-            <Text fontSize="6xl" textShadow="0 0 15px rgba(255, 215, 0, 1)">
-              ⭐
+            <Text
+              fontSize="6xl"
+              textShadow="0 0 20px rgba(255, 215, 0, 0.8)"
+              filter="drop-shadow(0 0 15px rgba(255, 215, 0, 0.6))"
+            >
+              🥙
             </Text>
             <Text
               fontSize="xs"
@@ -264,12 +268,12 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
             0%, 100% {
               transform: translate(-50%, -50%) scale(1);
               opacity: 1;
-              filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.8));
+              filter: drop-shadow(0 0 20px rgba(255, 165, 0, 0.8));
             }
             50% {
-              transform: translate(-50%, -50%) scale(1.08);
+              transform: translate(-50%, -50%) scale(1.1);
               opacity: 0.95;
-              filter: drop-shadow(0 0 25px rgba(255, 215, 0, 1));
+              filter: drop-shadow(0 0 30px rgba(255, 165, 0, 1)) drop-shadow(0 0 40px rgba(255, 215, 0, 0.6));
             }
           }
 
@@ -287,11 +291,11 @@ const SpecialEvents: React.FC<SpecialEventsProps> = ({
           @keyframes luckyGlow {
             0%, 100% {
               transform: scale(1);
-              filter: drop-shadow(0 0 8px rgba(196, 181, 253, 0.4));
+              filter: drop-shadow(0 0 8px rgba(255, 165, 0, 0.4));
             }
             50% {
               transform: scale(1.01);
-              filter: drop-shadow(0 0 12px rgba(196, 181, 253, 0.6));
+              filter: drop-shadow(0 0 12px rgba(255, 165, 0, 0.6));
             }
           }
         `}

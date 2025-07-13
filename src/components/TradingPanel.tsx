@@ -10,13 +10,17 @@ import {
   Input,
 } from "@chakra-ui/react";
 import CandlestickChart from "./CandlestickChart";
-import type { Trade, TradingData } from "../types/trading";
+import type { TradingData } from "../types/trading";
 import { FOOD_ITEMS, TRADING_CONFIG } from "../data/tradingData";
 import { formatNumber } from "../utils/gameUtils";
 import { useGame } from "../contexts/GameContext";
 
 const TradingPanel: React.FC = () => {
-  const { state, updateShawarmas, updateTradingState } = useGame();
+  const {
+    state,
+    executeTrade: contextExecuteTrade,
+    updateTradingState,
+  } = useGame();
   const { clicker, trading } = state;
 
   const [tradeAmount, setTradeAmount] = useState<number>(1);
@@ -141,7 +145,7 @@ const TradingPanel: React.FC = () => {
     return () => clearInterval(candleInterval);
   }, [trading.chartData, trading.currentPrices, updateTradingState]);
 
-  const executeTrade = () => {
+  const handleTrade = () => {
     if (tradeType === "buy") {
       // When buying, tradeAmount represents SHW to spend
       const shawarmaToSpend = tradeAmount;
@@ -151,37 +155,14 @@ const TradingPanel: React.FC = () => {
         return;
       }
 
-      updateShawarmas(clicker.shawarmas - shawarmaToSpend);
-
-      const newPortfolio = { ...trading.portfolio };
-      const newAverageCosts = { ...trading.portfolioAverageCosts };
-      const currentAmount = newPortfolio[trading.selectedFood] || 0;
-      const currentAvgCost = newAverageCosts[trading.selectedFood] || 0;
-
-      // Calculate new average cost using weighted average
-      const totalCurrentValue = currentAmount * currentAvgCost;
-      const newTotalValue = totalCurrentValue + shawarmaToSpend;
-      const newTotalAmount = currentAmount + foodUnitsToReceive;
-      const newAvgCost = newTotalValue / newTotalAmount;
-
-      newPortfolio[trading.selectedFood] = newTotalAmount;
-      newAverageCosts[trading.selectedFood] = newAvgCost;
-
-      const trade: Trade = {
-        id: `trade-${Date.now()}`,
-        foodId: trading.selectedFood,
-        type: "buy",
-        amount: foodUnitsToReceive,
-        price: currentPrice,
-        timestamp: Date.now(),
-        total: shawarmaToSpend,
-      };
-
-      updateTradingState({
-        portfolio: newPortfolio,
-        portfolioAverageCosts: newAverageCosts,
-        tradeHistory: [trade, ...trading.tradeHistory.slice(0, 49)],
-      });
+      // Use the context executeTrade function which handles everything
+      contextExecuteTrade(
+        "buy",
+        trading.selectedFood,
+        foodUnitsToReceive,
+        currentPrice,
+        shawarmaToSpend
+      );
     } else {
       // When selling, tradeAmount represents food units to sell
       const foodUnitsToSell = tradeAmount;
@@ -192,33 +173,14 @@ const TradingPanel: React.FC = () => {
         return;
       }
 
-      updateShawarmas(clicker.shawarmas + shawarmaToReceive);
-
-      const newPortfolio = { ...trading.portfolio };
-      const newAverageCosts = { ...trading.portfolioAverageCosts };
-      newPortfolio[trading.selectedFood] =
-        (newPortfolio[trading.selectedFood] || 0) - foodUnitsToSell;
-
-      if (newPortfolio[trading.selectedFood] <= 0) {
-        delete newPortfolio[trading.selectedFood];
-        delete newAverageCosts[trading.selectedFood]; // Remove average cost when position is closed
-      }
-
-      const trade: Trade = {
-        id: `trade-${Date.now()}`,
-        foodId: trading.selectedFood,
-        type: "sell",
-        amount: foodUnitsToSell,
-        price: currentPrice,
-        timestamp: Date.now(),
-        total: shawarmaToReceive,
-      };
-
-      updateTradingState({
-        portfolio: newPortfolio,
-        portfolioAverageCosts: newAverageCosts,
-        tradeHistory: [trade, ...trading.tradeHistory.slice(0, 49)],
-      });
+      // Use the context executeTrade function which handles everything
+      contextExecuteTrade(
+        "sell",
+        trading.selectedFood,
+        foodUnitsToSell,
+        currentPrice,
+        shawarmaToReceive
+      );
     }
 
     setTradeAmount(1);
@@ -262,8 +224,8 @@ const TradingPanel: React.FC = () => {
   };
 
   return (
-    <Box w="full" bg="rgba(26, 32, 44, 0.95)" p={3} minH="100vh">
-      <VStack gap={3} align="stretch" h="100vh">
+    <Box w="full" bg="rgba(26, 32, 44, 0.95)" p={3} h="full" overflowY="auto">
+      <VStack gap={3} align="stretch" h="full">
         <HStack justify="space-between" align="center">
           <VStack align="start" gap={0}>
             <Text fontSize="xl" fontWeight="bold" color="white">
@@ -1149,7 +1111,7 @@ const TradingPanel: React.FC = () => {
                   {/* Confirm Button */}
                   <Button
                     colorScheme={tradeType === "buy" ? "green" : "red"}
-                    onClick={executeTrade}
+                    onClick={handleTrade}
                     disabled={tradeAmount <= 0}
                     size="lg"
                     w="full"

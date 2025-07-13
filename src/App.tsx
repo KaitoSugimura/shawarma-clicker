@@ -2,29 +2,46 @@ import { useState } from "react";
 import "./App.css";
 import ShawarmaClicker from "./components/ShawarmaClicker";
 import TradingPanel from "./components/TradingPanel";
-import { Box, VStack, HStack, Button, Text } from "@chakra-ui/react";
-import { FaRedo, FaSave, FaDownload } from "react-icons/fa";
+import AchievementsPanel from "./components/AchievementsPanel";
+import { AuthDropdown } from "./components/AuthDropdown";
+import { Toaster } from "./components/ui/toaster";
+import { Box, VStack, HStack, Button, Text, Spinner } from "@chakra-ui/react";
+import { FaSave } from "react-icons/fa";
 import { useGame } from "./contexts/GameContext";
 import { formatNumber } from "./utils/gameUtils";
 
 function App() {
-  const [activeTab, setActiveTab] = useState<"game" | "trade">("game");
-  const { state, saveGame, loadGame, resetGame } = useGame();
+  const [activeTab, setActiveTab] = useState<"game" | "trade" | "achievements">(
+    "game"
+  );
+  const { state, user, authLoading, saveGame } = useGame();
 
-  const handleLoadGame = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      await loadGame(file);
-      alert("Game loaded successfully!");
-    } catch (error) {
-      console.error("Error loading save file:", error);
-      alert("Error loading save file!");
-    }
-
-    event.target.value = "";
-  };
+  // Show loading screen while Firebase is connecting
+  if (authLoading) {
+    return (
+      <Box
+        w="100vw"
+        h="100vh"
+        position="fixed"
+        top="0"
+        left="0"
+        bg="#1a202c"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+      >
+        <VStack gap={4}>
+          <Spinner size="xl" color="orange.300" />
+          <Text color="white" fontSize="lg">
+            Loading Shawarma Clicker...
+          </Text>
+          <Text color="gray.400" fontSize="sm">
+            Connecting to Firebase...
+          </Text>
+        </VStack>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -36,7 +53,7 @@ function App() {
       overflow="hidden"
       bg="#1a202c"
     >
-      <VStack h="full" gap={0}>
+      <VStack h="full" gap={0} overflow="visible">
         <HStack
           w="full"
           p={4}
@@ -46,6 +63,9 @@ function App() {
           justify="space-between"
           align="center"
           gap={4}
+          zIndex={100}
+          position="relative"
+          overflow="visible"
         >
           <HStack gap={3}>
             <Button
@@ -66,18 +86,19 @@ function App() {
             >
               📈 Food Exchange
             </Button>
+            <Button
+              variant={activeTab === "achievements" ? "solid" : "outline"}
+              colorScheme="yellow"
+              onClick={() => setActiveTab("achievements")}
+              size="md"
+              px={6}
+            >
+              🏆 Achievements
+            </Button>
           </HStack>
 
           <HStack gap={3}>
-            {/* Game controls - always visible */}
-            <Button
-              onClick={resetGame}
-              colorScheme="red"
-              size="sm"
-              variant="outline"
-            >
-              <FaRedo style={{ marginRight: "6px" }} /> Reset
-            </Button>
+            {/* Manual Save Button */}
             <Button
               onClick={saveGame}
               colorScheme="green"
@@ -86,23 +107,10 @@ function App() {
             >
               <FaSave style={{ marginRight: "6px" }} /> Save
             </Button>
-            <Box as="label">
-              <Button
-                as="span"
-                colorScheme="purple"
-                size="sm"
-                variant="outline"
-                cursor="pointer"
-              >
-                <FaDownload style={{ marginRight: "6px" }} /> Load
-              </Button>
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleLoadGame}
-                style={{ display: "none" }}
-              />
-            </Box>
+
+            {/* Auth Dropdown */}
+            <AuthDropdown user={user} loading={authLoading} />
+
             <Box>
               <Text color="orange.300" fontSize="lg" fontWeight="bold">
                 💰 {formatNumber(state.clicker.shawarmas)} SHW
@@ -112,9 +120,18 @@ function App() {
         </HStack>
 
         <Box w="full" flex={1} overflow="hidden">
-          {activeTab === "game" ? <ShawarmaClicker /> : <TradingPanel />}
+          {activeTab === "game" ? (
+            <ShawarmaClicker />
+          ) : activeTab === "trade" ? (
+            <TradingPanel />
+          ) : (
+            <AchievementsPanel />
+          )}
         </Box>
       </VStack>
+
+      {/* Toast notifications */}
+      <Toaster />
     </Box>
   );
 }

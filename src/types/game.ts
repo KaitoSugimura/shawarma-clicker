@@ -35,7 +35,11 @@ export interface Achievement {
   id: string;
   name: string;
   description: string;
-  requirement: (state: GameState, upgrades: Upgrade[]) => boolean;
+  requirement: (
+    state: GameState,
+    upgrades: Upgrade[],
+    clickUpgrades?: ClickUpgrade[]
+  ) => boolean;
   reward?: string;
 }
 
@@ -44,6 +48,17 @@ export interface GameStats {
   gameStartTime: number;
   bestClickRate: number;
   totalUpgradesPurchased: number;
+  totalClickUpgradesPurchased: number;
+  // Trading stats
+  totalTrades: number;
+  totalProfit: number;
+  bestTradeProfit: number;
+  tradesInSession: number;
+  longestHoldTime: number; // in seconds
+  quickestProfitableFlip: number; // in seconds
+  // General stats
+  playTime: number; // in seconds
+  totalResets: number;
 }
 
 export interface SpecialEvent {
