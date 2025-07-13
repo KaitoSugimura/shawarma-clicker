@@ -60,7 +60,7 @@ export const FOOD_ITEMS: FoodItem[] = [
     name: "Hot Dog",
     symbol: "HTD",
     icon: "🌭",
-    basePrice: 1.00,
+    basePrice: 1.0,
     volatility: 0.22,
     description: "Stadium food classic",
   },
