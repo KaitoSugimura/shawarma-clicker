@@ -443,6 +443,16 @@ const gameReducer = (
         loadedState.clickUpgrades
       );
 
+      // Ensure trading state has all required fields for backward compatibility
+      const freshTradingState = createInitialTradingState(loadedState.clicker?.shawarmas || 0);
+      const migratedTradingState = {
+        ...freshTradingState,
+        ...loadedState.trading,
+        // Ensure volatility fields exist with proper fallbacks
+        volatilityPeriods: loadedState.trading?.volatilityPeriods || freshTradingState.volatilityPeriods,
+        lastVolatilityCheck: loadedState.trading?.lastVolatilityCheck || Date.now(),
+      };
+
       return {
         ...loadedState,
         clicker: {
@@ -450,6 +460,7 @@ const gameReducer = (
           shawarmasPerSecond: recalculatedShawarmasPerSecond,
           shawarmasPerClick: recalculatedShawarmasPerClick,
         },
+        trading: migratedTradingState,
         lastSaved: Date.now(),
       };
 
