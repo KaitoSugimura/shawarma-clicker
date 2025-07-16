@@ -14,7 +14,7 @@ import type {
   ClickUpgrade,
   GameStats,
 } from "../types/game";
-import type { TradingState } from "../types/trading";
+import type { TradingState, FoodItem, TradingData } from "../types/trading";
 import {
   initialGameState,
   initialUpgrades,
@@ -23,6 +23,7 @@ import {
 import { FOOD_ITEMS, TRADING_CONFIG } from "../data/tradingData";
 import { auth } from "../firebase/config";
 import { CloudSaveService } from "../services/CloudSaveService";
+import { LeaderboardService } from "../services/LeaderboardService";
 import { toaster } from "../components/ui/toaster";
 
 export interface CombinedGameState {
@@ -117,7 +118,7 @@ const calculateShawarmasPerClick = (clickUpgrades: ClickUpgrade[]): number => {
   return Math.max(1, calculated || 1);
 };
 
-const generateFakeHistoricalData = (food: any, candles: number = 60): any[] => {
+const generateFakeHistoricalData = (food: FoodItem, candles: number = 60): TradingData[] => {
   const history = [];
   const now = Date.now();
   const candleDuration = TRADING_CONFIG.CANDLE_DURATION;
@@ -153,12 +154,12 @@ const generateFakeHistoricalData = (food: any, candles: number = 60): any[] => {
 
 const createInitialTradingState = (shawarmaBalance: number): TradingState => {
   const initialPrices: { [key: string]: number } = {};
-  const initialChartData: { [key: string]: any[] } = {};
+  const initialChartData: { [key: string]: TradingData[] } = {};
   const initialVolatilityPeriods: {
     [key: string]: { active: boolean; endTime: number; multiplier: number };
   } = {};
 
-  FOOD_ITEMS.forEach((food: any) => {
+  FOOD_ITEMS.forEach((food: FoodItem) => {
     const historicalData = generateFakeHistoricalData(
       food,
       TRADING_CONFIG.MAX_CANDLES
@@ -211,7 +212,7 @@ const gameReducer = (
         clicker: { ...state.clicker, shawarmasPerClick: action.payload },
       };
 
-    case "ADD_CLICK":
+    case "ADD_CLICK": {
       const newShawarmas = state.clicker.shawarmas + action.payload;
       return {
         ...state,
@@ -224,8 +225,9 @@ const gameReducer = (
         trading: { ...state.trading, shawarmaBalance: newShawarmas },
         stats: { ...state.stats, totalClicks: state.stats.totalClicks + 1 },
       };
+    }
 
-    case "ADD_PRODUCTION":
+    case "ADD_PRODUCTION": {
       const newShawarmasFromProduction =
         state.clicker.shawarmas + action.payload;
       return {
@@ -241,8 +243,9 @@ const gameReducer = (
           shawarmaBalance: newShawarmasFromProduction,
         },
       };
+    }
 
-    case "BUY_UPGRADE":
+    case "BUY_UPGRADE": {
       const updatedUpgrades = state.upgrades.map((upgrade) =>
         upgrade.id === action.payload.upgradeId
           ? {
@@ -274,8 +277,9 @@ const gameReducer = (
           totalUpgradesPurchased: state.stats.totalUpgradesPurchased + 1,
         },
       };
+    }
 
-    case "BUY_CLICK_UPGRADE":
+    case "BUY_CLICK_UPGRADE": {
       const updatedClickUpgrades = state.clickUpgrades.map((upgrade) =>
         upgrade.id === action.payload.upgradeId
           ? { ...upgrade, owned: true }
@@ -304,6 +308,7 @@ const gameReducer = (
             state.stats.totalClickUpgradesPurchased + 1,
         },
       };
+    }
 
     case "UPDATE_TRADING_STATE":
       return {
@@ -311,7 +316,7 @@ const gameReducer = (
         trading: { ...state.trading, ...action.payload },
       };
 
-    case "EXECUTE_TRADE":
+    case "EXECUTE_TRADE": {
       const { type: tradeType, foodId, amount, price, cost } = action.payload;
       const tradeShawarmas =
         tradeType === "buy"
@@ -374,6 +379,7 @@ const gameReducer = (
           tradeHistory: [trade, ...state.trading.tradeHistory.slice(0, 49)],
         },
       };
+    }
 
     case "UPDATE_PRICES":
       return {
@@ -402,7 +408,7 @@ const gameReducer = (
         },
       };
 
-    case "RESET_GAME":
+    case "RESET_GAME": {
       const resetState = getInitialCombinedState();
       return {
         ...resetState,
@@ -412,8 +418,9 @@ const gameReducer = (
           totalResets: state.stats.totalResets + 1,
         },
       };
+    }
 
-    case "LOAD_GAME":
+    case "LOAD_GAME": {
       const loadedState = action.payload;
       const recalculatedShawarmasPerSecond = calculateShawarmasPerSecond(
         loadedState.upgrades
@@ -445,6 +452,7 @@ const gameReducer = (
         trading: migratedTradingState,
         lastSaved: Date.now(),
       };
+    }
 
     default:
       return state;
@@ -615,6 +623,17 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         await CloudSaveService.saveToCloud(user, state);
         setLastCloudSave(Date.now());
         setPendingChanges(false);
+
+        // Update leaderboard entry (always on manual saves, occasionally on auto-saves)
+        if (!isAutoSave || Math.random() < 0.2) { // 20% chance on auto-save
+          try {
+            await LeaderboardService.updateUserEntry(user, state);
+            console.log("Leaderboard entry updated successfully");
+          } catch (leaderboardError) {
+            console.error("Failed to update leaderboard:", leaderboardError);
+            // Don't show error to user for leaderboard failures
+          }
+        }
 
         if (isAutoSave) {
           console.log("Auto-save successful");
