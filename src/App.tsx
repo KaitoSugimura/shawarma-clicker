@@ -3,6 +3,7 @@ import "./App.css";
 import ShawarmaClicker from "./components/ShawarmaClicker";
 import TradingPanel from "./components/TradingPanel";
 import { AchievementsPanel } from "./components/AchievementsPanel";
+import { LeaderboardPanel } from "./components/LeaderboardPanel";
 import { AuthDropdown } from "./components/AuthDropdown";
 import { Toaster } from "./components/ui/toaster";
 import { Box, VStack, HStack, Button, Text, Spinner } from "@chakra-ui/react";
@@ -11,7 +12,7 @@ import { useGame } from "./contexts/GameContext";
 import { formatNumber } from "./utils/gameUtils";
 
 function App() {
-  const [activeTab, setActiveTab] = useState<"game" | "trade" | "achievements">(
+  const [activeTab, setActiveTab] = useState<"game" | "trade" | "achievements" | "leaderboard">(
     "game"
   );
   const { state, user, authLoading, gameLoading, saveGame } = useGame();
@@ -94,6 +95,15 @@ function App() {
             >
               🏆 Achievements
             </Button>
+            <Button
+              variant={activeTab === "leaderboard" ? "solid" : "outline"}
+              colorScheme="purple"
+              onClick={() => setActiveTab("leaderboard")}
+              size="md"
+              px={6}
+            >
+              📊 Leaderboard
+            </Button>
           </HStack>
 
           <HStack gap={3}>
@@ -127,8 +137,10 @@ function App() {
             <ShawarmaClicker />
           ) : activeTab === "trade" ? (
             <TradingPanel />
-          ) : (
+          ) : activeTab === "achievements" ? (
             <AchievementsPanel />
+          ) : (
+            <LeaderboardPanel user={user} />
           )}
         </Box>
       </VStack>
